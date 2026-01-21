@@ -77,25 +77,33 @@ The datasets are automatically downloaded and processed by the code (📂`loader
 
 
 
-## 参数说明
+## 参数说明⭐
 
 > 我们在 main.py 设计了大量的指令参数，每个参数我们都提供了相关的描述。对于部分重要参数，我们进行详细说明，帮助 user 更好的复现我们的实验。对于未提及的参数，我们建议保留使用默认值。
 
 - **atom_init**：用于初始化节点表示的原子描述符文件名（后缀 `.json` 会自动补全，所有原子描述符文件存放在 📂`dataset` → 📂`json`）
 - **name**：当前 wandb 实验的名称，会同步到 wandb 对应 `wandb_project` 项目下生成训练记录。
-  - 由于历史原因，我们对 `name` 属性字符串设置了一系列的正则表达式匹配，根据对应子串的变换，模型内部结构也会自动调整。
-    1. `8five` 或 `7one` 子串出现在 `name` 属性中，表示 AtomNet Layer 中的第一个 NormLayer 使用 Layer Normalization。否则，使用 Batch Normalization。
-    2. `smoothEnv02` 子串出现在 `name` 属性中，表示使用**距离权重衰减函数**（**Cubic Smooth**）。否则，使用简化的分段权重函数（**Simply**） 
-    2. `newRBF, newRBF02, newRBF03, newRBF04, newRBF05` 子串出现在 `name` 属性中，表示对 Sanderson 电负性边特征使用**不同的 RBF kernel 函数**（特征维度不同，是否使用 cosine 函数进行加权等）进行特征衍生。
+  1. `newRBF, newRBF02, newRBF03, newRBF04, newRBF05` 子串出现在 `name` 属性中，表示对 Sanderson 电负性边特征使用**不同的 RBF kernel 函数**（特征维度不同，是否使用 cosine 函数进行加权等）进行特征衍生。
+- **electronegativity_type**：对 Sanderson 电负性边特征使用**不同的 RBF kernel 函数**（特征维度不同，是否使用 cosine 函数进行加权等）
+- **envelope_type**：我们分别提供了论文正文和补充文件提出的 **Cubic Smooth** 和 **Simply** 权重函数，即 `cubic` 和 `simply`。
 - **disableUpdateEdge**：<u>限制</u>或<u>停止</u>**消息传递过程**中对边特征的更新。
 - **limitedUpdateEdge**：运行在前 `limitedUpdateEdge + 1` 个 AtomNet Layer 层对边特征进行更新（残差连接）。配合 `disableUpdateEdge` 参数使用，取值范围[0, 3]，对应 AtomNet Layer 层数（default: 4）。
+  - 在 Jarvis DFT 3D 2021 数据集的 BandGap(MBJ) 任务中，我们发现当设置 `limitedUpdateEdge==3` 时（如果 AtomNet_layer 为 4 层），模型的 MAE 指标更优。或者直接在模型训练脚本中删除 `--disableUpdateEdge` 和 `--limitedUpdateEdge`。
+
 - **usePolynomial**：默认值 `3`，我们在实验中，除了使用 RBF（径向基函数）对<u>原子间距离</u>进行**特征衍生**，还将 `特征工程` 中经典的**多项式特征衍生方法**应用于“距离”特征的扩展，虽然没有在论文中提及，但实验结果证明了该方法的有效性。（我们建议作者在所有任务中均保留使用 `--usePolynomial 3` 参数，以复现论文结果）
-- **newEnvelope**：边权重计算函数。
-  - 如果 user 想复现实验结果，需要为每个任务均添加 `--newEnvelope` 参数。我们分别提供了论文正文和补充文件提出的 **Cubic Smooth** 和 **Simply** 权重函数，模型选择哪个权重函数取决于上面提到的 `name` 参数。
-  - 如果不添加该参数，AtomNet 将使用与 [CartNet](https://pubs.rsc.org/en/content/articlelanding/2024/dd/d4dd00352g) 相同的 cosine 函数作为权重函数。在消融实验中，我们就是通过移除 `--newEnvelope` 参数进行模型性能对比。
 - **useElectronegativity**：使用基于 Sanderson 电负性作为新的边特征，
 - **normalizedElectronegativity**：配合 `useElectronegativity` 参数使用，对电负性边特征进行归一化处理。
+  - 当使用该参数时，会自动忽视 `electronegativity_type` 的参数值，即不对电负性边特征进行维度扩展。
+
+- **inference**：基于预训练模型使用推理学习。
+  - 由于模型的初始化依赖于预训练模型的具体架构细节。所以，我们建议 user 使用我们提供的示例代码和预训练模型进行尝试。如果希望用自己的训练模型，需要先用一套模型训练脚本生成预训练模型，再在这套训练脚本中加上 `--inference` 即可实现推理学习。
+
 - **ig**：基于预训练模型进行解释性实验，并输出可视化结果。
+  - 与 `inference` 流程一样，在得到预训练模型的那套脚本中加上 `--ig` 参数，或使用我们提供的示例代码和预训练模型，即可实现针对原子描述符特征的可解释性分析结果。
+
+- **max_neighbours**：经过实验验证，虽然限制中心原子的邻居数量能够一定程度上减少模型的参数量和训练时间，但在最终的 MAE 指标上，仅依赖截止半径的预测结果优于使用截断半径与最大邻居数双重限制的模型性能。
+  - 我们建议设置 `max_neighbours==-1`。
+
 
 
 
@@ -155,8 +163,6 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 
 
 
-
-
 ## 🚀训练
 
 为了重现论文中的实验，我们为 user 提供每个任务的最优模型训练配置代码（论文结果由 10 个不同 seed 参数训练得到的测试集 MAE 值，删除一个最大值和一个最小值，再对剩余 8 个结果计算平均值得到）。
@@ -172,39 +178,31 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 ##### 1. formation energy
 
 ```shell
-python main.py --seed 204 --name 8five_seed\(204\)_\(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01\)dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF
 ```
-
-
 
 ##### 2. bandgap(OPT)
 
 ```shell
-python main.py --seed 448 --name smoothEnv02_8five_seed\(448\)_\(128batch_3_Poly_newEnv2_116d_update01\)dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic
 ```
-
-
 
 ##### 3. bandgap(MBJ)
 
 ```shell
-python main.py --seed 297 --name seed\(297\)_\(3_Poly_newEnv2_116d_update01\)dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --threads 6 --workers 3 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --batch 64
+python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply
 ```
-
-
 
 ##### 4. ehull
 
 ```shell
-python main.py --seed 504 --name 8five_seed\(504\)_\(128batch_eNeg+newRBF04_3_Poly_newEnv2_116d_update01\)dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04
 ```
-
-
 
 ##### 5. total energy
 
 ```shell
-python main.py --seed 306 --name smoothEnv02_8five_seed\(306\)_\(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01\)dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
@@ -214,125 +212,283 @@ python main.py --seed 306 --name smoothEnv02_8five_seed\(306\)_\(128batch_eNeg+n
 ##### 1. formation energy
 
 ```shell
-python main.py --seed 204 --name 8five_seed(204)_(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01)dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF
 ```
-
-
 
 ##### 2. bandgap(OPT)
 
 ```shell
-python main.py --seed 448 --name smoothEnv02_8five_seed(448)_(128batch_3_Poly_newEnv2_116d_update01)dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic
 ```
-
-
 
 ##### 3. bandgap(MBJ)
 
 ```shell
-python main.py --seed 297 --name seed(297)_(3_Poly_newEnv2_116d_update01)dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --threads 6 --workers 3 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --batch 64
+python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features(116d)_update01 --envelope_type simply
 ```
-
-
 
 ##### 4. ehull
 
 ```shell
-python main.py --seed 504 --name 8five_seed(504)_(128batch_eNeg+newRBF04_3_Poly_newEnv2_116d_update01)dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04
 ```
-
-
 
 ##### 5. total energy
 
 ```shell
-python main.py --seed 306 --name smoothEnv02_8five_seed(306)_(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01)dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
 
 ### Materials Project
 
-#### Linux
+> 这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
 
-##### 1. formation energy
+##### 1. e_form
 
 ```shell
-python main.py --seed 233 --name 8five_seed\(233\)_\(128batch_eNeg_3_Poly_newEnv2_116d_update01\)megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1
 ```
-
-
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 335 --name smoothEnv02_8five_seed\(335\)_\(128batch_eNeg_3_Poly_newEnv2_116d_update01\)megnet_bandgap --dataset megnet  --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1
 ```
-
-
 
 ##### 3. bulk  modulus
 
 ```shell
-python main.py --seed 534 --name 8five_seed\(534\)_\(norm_eNeg_3_Poly_newEnv2_116d_update01\)megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply
 ```
-
-
 
 ##### 4. shear modulus
 
 ```shell
-python main.py --seed 438 --name smoothEnv02_8five_seed\(438\)_\(eNeg+newRBF02_3_Poly_newEnv2_116d_update01\)megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02
 ```
 
 
 
-#### Windows
+## 推理学习
+
+### 数据
+
+> 理想情况下，用于推理的晶体结构应区别于训练数据集，且推理数据集的数据结构应与我们提供的 `inference_data.json` 保持一致。
+>
+> - 与模型训练数据集一样，我们统一使用 `from jarvis.core.atoms import Atoms` 包处理推理数据，因此要求满足下面展示的 json 数据结构。
+> - props 可以为空，不会在数据处理过程中使用。
+
+#### inference_data.json
+
+```json
+// "jid": "JVASP-23213"
+[
+    {"atoms": {
+        "lattice_mat": [
+            [
+                1.6374061181864787,
+                4.6320620294223085,
+                2.836071848582606
+            ],
+            [
+                -0.0003656271176311,
+                -0.0002587898763079,
+                5.6727763751083975
+            ],
+            [
+                4.9133178857659425,
+                8.84592966e-08,
+                -2.836705415419651
+            ]
+        ],
+        "coords": [
+            [
+                3.2751799999999998,
+                2.3159,
+                2.8360700000000003
+            ],
+            [
+                0.81852,
+                2.3159,
+                4.254425
+            ],
+            [
+                2.45666,
+                0.0,
+                -1.418355
+            ],
+            [
+                3.275365,
+                2.31603,
+                -0.000320000000000098
+            ],
+            [
+                0.8187019541225831,
+                0.5789094103158883,
+                1.4180396205680705
+            ],
+            [
+                5.731658045877419,
+                4.052890589684114,
+                4.254100379431928
+            ],
+            [
+                2.564110246226763,
+                3.4359435249916004,
+                1.4178436178370966
+            ],
+            [
+                2.456217182400851,
+                3.3596525149154344,
+                4.254296382471964
+            ],
+            [
+                1.6914174084098796,
+                1.1960121133920303,
+                2.929622058350195
+            ],
+            [
+                4.094142817599149,
+                1.2721474850845667,
+                1.417843617528035
+            ],
+            [
+                1.691196226115134,
+                1.1958564755409065,
+                5.579347730486713
+            ],
+            [
+                4.858942591590121,
+                3.435787886607971,
+                2.7425179416498056
+            ],
+            [
+                3.986249753773237,
+                1.195856475008399,
+                4.254296382162902
+            ],
+            [
+                4.859163773884865,
+                3.4359435244590935,
+                0.09279226951328705
+            ]
+        ],
+        "elements": [
+            "Fe",
+            "Fe",
+            "Fe",
+            "Fe",
+            "Fe",
+            "Fe",
+            "O",
+            "O",
+            "O",
+            "O",
+            "O",
+            "O",
+            "O",
+            "O"
+        ],
+        "cartesian": true,
+        "props": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ]
+    }}
+]
+```
+
+
+
+### 示例脚本
+
+> 这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+
+#### Jarvis DFT 3D 2021
 
 ##### 1. formation energy
 
 ```shell
-python main.py --seed 233 --name 8five_seed(233)_(128batch_eNeg_3_Poly_newEnv2_116d_update01)megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference
+```
+
+##### 2. bandgap(OPT)
+
+```shell
+python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --inference
+```
+
+##### 3. bandgap(MBJ)
+
+```shell
+python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply --inference
+```
+
+##### 4. ehull
+
+```shell
+python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04 --inference
+```
+
+##### 5. total energy
+
+```shell
 ```
 
 
+
+#### Materials Project
+
+##### 1. e_form
+
+```shell
+python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1 --inference
+```
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 335 --name smoothEnv02_8five_seed(335)_(128batch_eNeg_3_Poly_newEnv2_116d_update01)megnet_bandgap --dataset megnet  --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1 --inference
 ```
-
-
 
 ##### 3. bulk  modulus
 
 ```shell
-python main.py --seed 534 --name 8five_seed(534)_(norm_eNeg_3_Poly_newEnv2_116d_update01)megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --inference
 ```
-
-
 
 ##### 4. shear modulus
 
 ```shell
-python main.py --seed 438 --name smoothEnv02_8five_seed(438)_(eNeg+newRBF02_3_Poly_newEnv2_116d_update01)megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02 --inference
 ```
-
-
 
 
 
 ## 📊可解释性结果可视化
 
-> 可解释性实验基于预训练模型
+> 可解释性实验基于预训练模型。这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
 
 #### 以 total energy 为例
 
 第一步：训练模型（如果使用预训练模型，跳过）
 
 ```shell
-python main.py --seed 306 --name smoothEnv02_8five_seed\(306\)_\(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01\)dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2
+python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 第二步：进行解释性分析实验
@@ -340,7 +496,7 @@ python main.py --seed 306 --name smoothEnv02_8five_seed\(306\)_\(128batch_eNeg+n
 > 就是在训练模型脚本基础上加一个 `ig` 参数
 
 ```shell
-python main.py --seed 306 --name smoothEnv02_8five_seed\(306\)_\(128batch_eNeg+newRBF_3_Poly_newEnv2_116d_update01\)dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --usePolynomial 3 --newEnvelope --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --ig
+python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --ig
 ```
 
 第三步：结果可视化
