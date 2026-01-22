@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="30aaa94d-8060-4860-956c-c8027a7fb699" name="cec-maojian-1 (project level)">
+        <fileTransfer accessType="SFTP" host="10.10.18.30" port="22" sshConfigId="a2fba8d6-d3e7-46d1-8d4a-ac36f5e27e91" sshConfig="jmucec@10.10.18.30:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="693aa681-728b-401d-b783-31b1bb104430" name="cec-maojian-1">
+        <fileTransfer accessType="SFTP" host="10.10.18.30" port="22" sshConfigId="a2fba8d6-d3e7-46d1-8d4a-ac36f5e27e91" sshConfig="jmucec@10.10.18.30:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="4f4e38f9-8379-46a4-9784-e1a00ddc2a7a" name="A6000-48G">
+        <fileTransfer accessType="SFTP" host="i-2.gpushare.com" port="24708" sshConfigId="f5fbfe9f-e476-41ba-ace5-2171b74a2e0a" sshConfig="root@i-2.gpushare.com:24708 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

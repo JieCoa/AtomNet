@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="10.10.18.30" id="a2fba8d6-d3e7-46d1-8d4a-ac36f5e27e91" port="22" nameFormat="DESCRIPTIVE" username="jmucec" useOpenSSHConfig="true" />
+      <sshConfig authType="PASSWORD" host="i-2.gpushare.com" id="f5fbfe9f-e476-41ba-ace5-2171b74a2e0a" port="24708" nameFormat="DESCRIPTIVE" username="root" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>
