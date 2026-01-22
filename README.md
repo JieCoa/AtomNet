@@ -1,8 +1,6 @@
 **[ <u>English</u> ]**  [[ 中文 ]](./README-cn.md)
 
-Code will be made publicly available upon acceptance!
 
-------
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
@@ -150,7 +148,17 @@ Upload commands:
 
 To reproduce the experiments in the paper, we provide optimal model training configuration code for each task (Paper results are the average of 8 results, obtained by training with 10 different seed parameters and removing one maximum and one minimum value).
 
+
+
 ### Jarvis DFT 3D 2021
+
+We provide two methods for executing scripts for model training and inference:
+
+1. Execute the script in the command-line terminal (example script shown below);
+
+2. Execute `/scripts/linux_train_atomnet.py`.
+
+
 
 #### Linux
 

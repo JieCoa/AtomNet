@@ -171,6 +171,13 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 
 ### Jarvis DFT 3D 2021
 
+我们提供了 2 种脚本执行方式：
+
+1. 在命令行终端执行脚本（示例脚本如下所示）；
+2. 执行 `/scripts/linux_train_atomnet.py`。
+
+
+
 #### Linux
 
 > 对于 `(`  和`)` 符号，需要使用 `\` 进行转义，这是与 Windows 指令的唯一区别。
@@ -505,20 +512,20 @@ python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare
 
 > `ig_framework.py` 会通过绘制柱状图对不同原子属性重要性进行可视化。
 
-<img src="./figure/total_energy_IG_01.png" alt="Pipeline" style="zoom:24%;" />
+<img src="./figure/total_energy_IG_01.png" alt="Pipeline" style="zoom:26%;" />
 
 (2) IG 值的稳定性分析
 
-| n1   | n2   | spearman | kendall | MRC          |
-| ---- | ---- | -------- | ------- | ------------ |
-| 20   | 32   | 1.0      | 1.0     | 7.364111e-05 |
-| 20   | 64   | 1.0      | 1.0     | 6.908334e-05 |
-| 20   | 128  | 1.0      | 1.0     | 6.897337e-05 |
-| 32   | 64   | 1.0      | 1.0     | 6.235194e-06 |
-| 32   | 128  | 1.0      | 1.0     | 6.304672e-06 |
-| 64   | 128  | 1.0      | 1.0     | 3.072127e-07 |
+| n1   | n2   | spearman | kendall | MRC      |
+| ---- | ---- | -------- | ------- | -------- |
+| 20   | 32   | 1.0      | 1.0     | 0.000186 |
+| 20   | 64   | 1.0      | 1.0     | 0.000196 |
+| 20   | 128  | 1.0      | 1.0     | 0.000196 |
+| 32   | 64   | 1.0      | 1.0     | 0.000026 |
+| 32   | 128  | 1.0      | 1.0     | 0.000026 |
+| 64   | 128  | 1.0      | 1.0     | 0.000002 |
 
-
+<img src="/figure/total_energy_IG(with different steps).png" alt="image-20260122151541456" style="zoom:30%;" />
 
 ## 模型效率
 
