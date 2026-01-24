@@ -27,8 +27,8 @@ def compute_metrics_and_logging(pred, true, mae, mse, loss, lr, time_used, logge
     """
     Compute metrics and log the results using the provided logger.
     Parameters:
-    pred (torch.Tensor): Predicted values.    预测值
-    true (torch.Tensor): Ground truth values. 标签
+    pred (torch.Tensor): Predicted values.
+    true (torch.Tensor): Ground truth values.
     mae (torch.Tensor): Mean Absolute Error.
     mse (torch.Tensor): Mean Squared Error.
     loss (torch.Tensor): Loss value.

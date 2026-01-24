@@ -62,12 +62,9 @@ if __name__ == "__main__":
     parser.add_argument("--inference_data_path", type=str, default="./dataset/inference/inference_data.json")
     # parser.add_argument("--inference_output", type=str, default="./inference.pkl", help="Path to the inference output")
     parser.add_argument("--figshare_target", type=str, default="gap pbe", help="Figshare dataset target")  # mbj_bandgap, optb88vdw_bandgap, ...
-
-    # -------------- 公开前要改掉 ----------------
-    parser.add_argument("--wandb_project", type=str, default="CartNet_Jarvis", help="Wandb project name")
-    parser.add_argument("--wandb_entity", type=str, default="what-can-i-say-jimei-university",
+    parser.add_argument("--wandb_project", type=str, default="please fill your project name", help="Wandb project name")
+    parser.add_argument("--wandb_entity", type=str, default="please fill your entity name",
                         help="Name of the wandb entity")  # your own wandb account name
-
     parser.add_argument("--loss", type=str, default="MAE", help="Loss function")
     parser.add_argument("--epochs", type=int, default=300, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
@@ -179,7 +176,7 @@ if __name__ == "__main__":
     logging.info(f"Target property: {cfg.figshare_target}")
     logging.info(f"Experiment will be saved at: {cfg.run_dir}")
 
-    if args.inference:  # 推理使用额外传入的数据集(要求包含指定 key 的字典列表)
+    if args.inference:  # Inference uses an additional incoming dataset (requiring a list of dictionaries containing the specified key)
         inference_loader = create_inference_loader()
     else:
         loaders = create_loader()
@@ -190,20 +187,14 @@ if __name__ == "__main__":
     cfg.params_count = params_count(model)
     logging.info(f"Number of parameters: {cfg.params_count}")
 
-    """ 优化器 
-    1. 原作者没有设置权重衰减 weight_decay。
-    2. AdamW 的设计初衷是更好地支持权重衰减，故使用 weight_decay=0.001。（一般使用0.01）
-        - betas=(0.9, 0.98) 来自 "CrystalFramer(2025-ICLR) 模型参数设置"
-    """
     # optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, betas=(0.9, 0.98), weight_decay=0.01)
 
     loggers = create_logger()
 
     if args.inference:
-        # 加载预训练模型
         ckpt_path = f'{cfg.run_dir}/ckpt/best.ckpt'
-        assert os.path.exists(ckpt_path), "model 参数文件不存在 ❌"
+        assert os.path.exists(ckpt_path), "The model parameter file does not exist! ❌"
 
         ckpt = torch.load(ckpt_path)
         model.load_state_dict(ckpt["model_state"])

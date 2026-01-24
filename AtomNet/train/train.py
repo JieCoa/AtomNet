@@ -44,40 +44,14 @@ def train(model, loaders, optimizer, loggers):
 
     """
 
-    """
-    wandb.init()
-        作用: 初始化一个 wandb 实验（run），启动与 wandb 服务器的连接，用于记录实验的日志、指标和配置。
-        细节:
-        wandb 是 Weights & Biases 的 Python 库，wandb.init() 是开始跟踪实验的入口。
-        返回一个 Run 对象（这里赋值给 run），可以通过它手动记录数据或控制实验。
-    
-    run:
-        作用: 接收 wandb.init() 的返回值，一个 Run 对象。
-        细节:
-        run 可用于后续操作，例如手动记录日志（run.log()）或结束实验（run.finish()）。
-        如果不显式使用 run，wandb 也会通过全局状态跟踪实验。
-    """
-    # os.environ["HTTP_PROXY"] = "http://127.0.0.1:10809"  # 通过设置代理，可以在线同步 Wandb 网站
-    # os.environ["HTTPS_PROXY"] = "http://127.0.0.1:10809"  # 通过设置代理，可以在线同步 Wandb 网站
-    # run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.name, config=cfg)
-
+    # run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.name, config=cfg)  # mode="online"
     run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.name, config=cfg, mode="offline")
 
-    num_splits = len(loggers)  # 3：train, val, test
-    full_epoch_times = []  # 记录每个 epoch 的运行时间
-    perf = [[] for _ in range(num_splits-1)]  # 仅记录 train 和 val 的日志信息
+    num_splits = len(loggers)
+    full_epoch_times = []
+    perf = [[] for _ in range(num_splits-1)]  # Only record the log information of train and val
     ckpt_dir = osp.join(cfg.run_dir, "ckpt/")  # results/xxx/ckpt/
 
-    """
-    学习率调度器，用于在训练神经网络时动态调整优化器的学习率。
-    OneCycleLR 基于 "1Cycle" 学习率策略（One Cycle Policy），旨在通过在一个训练周期内动态调整学习率来加速收敛并提高模型性能。
-    它的核心思想是：学习率从一个较低值开始，逐渐增加到最大值（max_lr），然后再逐渐下降到一个较低值，形成一个“上升-下降”的周期。
-    
-    optimizer: 传入的优化器对象（如 torch.optim.Adam 或 torch.optim.AdamW），调度器会根据策略调整该优化器的学习率。
-    len(loaders[0]): 数据加载器（如训练集 DataLoader）中每个 epoch 的批次数量。
-    cfg.batch_accumulation: 梯度累积的步数。如果每次迭代不立即更新权重，而是累积多次梯度后再更新，则需要除以这个值来计算实际的更新次数。
-    pct_start: 表示学习率从初始值上升到 max_lr 所占的步数比例。通常是一个 0 到 1 之间的浮点数，例如 0.3，表示前 30% 的步数用于学习率从低值上升到 max_lr。
-    """
     if cfg.batch_accumulation > 1:
         scheduler = OneCycleLR(optimizer,
                                max_lr=cfg.lr,
@@ -89,11 +63,11 @@ def train(model, loaders, optimizer, loggers):
                                total_steps=cfg.optim.max_epoch * len(loaders[0]) // cfg.batch_accumulation,
                                pct_start=cfg.warmup)
 
-    if cfg.useSWA:  # 是否使用 SWA
+    if cfg.useSWA:
         swa_model = swa_utils.AveragedModel(model)
 
     for cur_epoch in range(cfg.optim.max_epoch):
-        start_time = time.perf_counter()  # perf_counter 是 time 模块的一个高精度计时函数
+        start_time = time.perf_counter()
         
         train_epoch(loggers[0], loaders[0], model, optimizer, cfg.batch_accumulation, scheduler, cur_epoch=cur_epoch)
         perf[0].append(loggers[0].write_epoch(cur_epoch))
@@ -101,21 +75,19 @@ def train(model, loaders, optimizer, loggers):
         eval_epoch(loggers[1], loaders[1], model)
         perf[1].append(loggers[1].write_epoch(cur_epoch))
 
-        # 记录 训练、验证 运行时间
-        full_epoch_times.append(time.perf_counter() - start_time)    
-        # 记录日志
+        full_epoch_times.append(time.perf_counter() - start_time)
         run.log(flatten_dict(perf), step=cur_epoch)
 
         # Log current best stats on eval epoch.     
-        best_epoch = int(np.array([vp['MAE'] for vp in perf[1]]).argmin())  # argmin() 用于返回数组中最小值的索引
+        best_epoch = int(np.array([vp['MAE'] for vp in perf[1]]).argmin())
         best_train = f"train_MAE: {perf[0][best_epoch]['MAE']:.4f}"
         best_val = f"val_MAE: {perf[1][best_epoch]['MAE']:.4f}"
         bstats = {"best/epoch": best_epoch}
         for i, s in enumerate(['train', 'val']): 
             bstats[f"best/{s}_loss"] = perf[i][best_epoch]['loss']
             bstats[f"best/{s}_MAE"] = perf[i][best_epoch]['MAE']
-        logging.info(bstats)  # 在控制台打印统计信息。
-        run.log(bstats, step=cur_epoch)  # 将统计信息上传到 wandb。
+        logging.info(bstats)
+        run.log(bstats, step=cur_epoch)
 
         run.summary["full_epoch_time_avg"] = np.mean(full_epoch_times)
         run.summary["full_epoch_time_sum"] = np.sum(full_epoch_times)
@@ -145,22 +117,15 @@ def train(model, loaders, optimizer, loggers):
             f"val_loss: {perf[1][best_epoch]['loss']:.4f} {best_val}\t"
         )
 
-    """
-    第一次训练解释后，出现  MemoryError，判断是内存空间不够：
-    1. 减少batch size;
-    2. 减少 workers;
-    3. 使用 gc.collect() 释放内存。(但是不知道的是否会将 loggers、loaders、model 都释放掉，需要测试)
-    """
     # gc.collect()
-
-    if cfg.useSWA:  # 训练结束时调用，专门为 SWA 模型更新批归一化（Batch Normalization, BN）层。
+    if cfg.useSWA:  # It is called at the end of training, specifically for updating the Batch Normalization (BN) layer for the SWA model.
         print("Updating BNs for Stochastic Weight Averaging")
         device = swa_model.parameters().__next__().device
         swa_utils.update_bn(loaders[0], swa_model, device=device)
         torch.save(swa_model.state_dict(), osp.join(ckpt_dir, 'swa.ckpt'))
 
     """
-    测试阶段
+    test
     """
     ckpt = torch.load(ckpt_path)
     model.load_state_dict(ckpt["model_state"])
@@ -217,18 +182,14 @@ def train_epoch(logger, loader, model, optimizer, batch_accumulation, scheduler,
         None
     """
     model.train()
-    optimizer.zero_grad()  # 在每一轮开始前，清空优化器的梯度
-    cur_epoch = kwargs.get('cur_epoch', 0)  # 默认值为 0
+    optimizer.zero_grad()
+    cur_epoch = kwargs.get('cur_epoch', 0)
 
-    """
-    total=len(loader): 设置进度条的总长度为数据加载器的批次数量。
-    ncols=50: 设置进度条宽度为 50 个字符，控制显示长度。
-    """
     for iter, batch in tqdm(enumerate(loader), total=len(loader), ncols=50):
         time_start = time.time()
         batch.to("cuda:0")
 
-        pred, true = model(batch)  # 模型的返回值：预测值，标签值
+        pred, true = model(batch)
             
         MAE, MSE = compute_loss(pred, true)
 
@@ -241,28 +202,26 @@ def train_epoch(logger, loader, model, optimizer, batch_accumulation, scheduler,
 
         """
         loss.mean().backward()
-        作用: 计算损失的梯度并进行反向传播。
-        细节:
-        loss 是一个张量，可能具有多个元素（例如每个样本的损失）。
-        .mean(): 如果 loss 不是标量，取平均值将其转换为标量（PyTorch 要求反向传播的损失是标量）。
-        .backward(): 执行反向传播，计算模型参数的梯度，存储在参数的 .grad 属性中。
+        Function: Calculate the gradient of the loss and perform backpropagation.
+        Details:
+        loss is a tensor that may have multiple elements (for example, the loss of each sample).
+        .mean(): If the loss is not a scalar, take the average value to convert it to a scalar (PyTorch requires that the loss of backpropagation be a scalar).
+        .backward(): Performs backpropagation, calculates the gradient of the model parameters, and stores it in the.grad attribute of the parameters.
         """
         loss.mean().backward()
 
         """
-        根据梯度累积策略更新模型参数，并调整学习率。
-        1. optimizer.step(): 使用累积的梯度更新模型参数。
-        2. scheduler.step(): 根据学习率调度器（如 OneCycleLR）调整优化器的学习率。
-        3. optimizer.zero_grad(): 清零梯度，为下一轮计算准备。
+        Update the model parameters according to the gradient accumulation strategy and adjust the learning rate.
+        1. optimizer.step(): Update the model parameters using the accumulated gradients.
+        2. scheduler.step(): Adjust the learning rate of the optimizer according to the learning rate scheduler (such as OneCycleLR).
+        3. optimizer.zero_grad(): Reset the gradient to zero to prepare for the next round of calculation.
         """
         if ((iter + 1) % batch_accumulation == 0) or (iter + 1 == len(loader)):
             optimizer.step()
-            # 判断是否更新学习率
             if not cfg.useSWA or cfg.useSWA and cur_epoch + cfg.swa_epochs < cfg.optim.max_epoch:
                 scheduler.step()
             optimizer.zero_grad()
 
-        # .detach(): 去除梯度，将张量从计算图中分离，防止日志记录影响梯度计算。
         compute_metrics_and_logging(pred=pred.detach(),
                                     true=true.detach(),
                                     mae=MAE.detach(),
