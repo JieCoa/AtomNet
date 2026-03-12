@@ -83,24 +83,19 @@ The datasets are automatically downloaded and processed by the code (📂`loader
 
 - **atom_init**：用于初始化节点表示的原子描述符文件名（后缀 `.json` 会自动补全，所有原子描述符文件存放在 📂`dataset` → 📂`json`）
 - **name**：当前 wandb 实验的名称，会同步到 wandb 对应 `wandb_project` 项目下生成训练记录。
-  1. `newRBF, newRBF02, newRBF03, newRBF04, newRBF05` 子串出现在 `name` 属性中，表示对 Sanderson 电负性边特征使用**不同的 RBF kernel 函数**（特征维度不同，是否使用 cosine 函数进行加权等）进行特征衍生。
 - **electronegativity_type**：对 Sanderson 电负性边特征使用**不同的 RBF kernel 函数**（特征维度不同，是否使用 cosine 函数进行加权等）
 - **envelope_type**：我们分别提供了论文正文和补充文件提出的 **Cubic Smooth** 和 **Simply** 权重函数，即 `cubic` 和 `simply`。
 - **disableUpdateEdge**：<u>限制</u>或<u>停止</u>**消息传递过程**中对边特征的更新。
 - **limitedUpdateEdge**：运行在前 `limitedUpdateEdge + 1` 个 AtomNet Layer 层对边特征进行更新（残差连接）。配合 `disableUpdateEdge` 参数使用，取值范围[0, 3]，对应 AtomNet Layer 层数（default: 4）。
   - 在 Jarvis DFT 3D 2021 数据集的 BandGap(MBJ) 任务中，我们发现当设置 `limitedUpdateEdge==3` 时（如果 AtomNet_layer 为 4 层），模型的 MAE 指标更优。或者直接在模型训练脚本中删除 `--disableUpdateEdge` 和 `--limitedUpdateEdge`。
-
 - **usePolynomial**：默认值 `3`，我们在实验中，除了使用 RBF（径向基函数）对<u>原子间距离</u>进行**特征衍生**，还将 `特征工程` 中经典的**多项式特征衍生方法**应用于“距离”特征的扩展，虽然没有在论文中提及，但实验结果证明了该方法的有效性。（我们建议作者在所有任务中均保留使用 `--usePolynomial 3` 参数，以复现论文结果）
 - **useElectronegativity**：使用基于 Sanderson 电负性作为新的边特征，
 - **normalizedElectronegativity**：配合 `useElectronegativity` 参数使用，对电负性边特征进行归一化处理。
   - 当使用该参数时，会自动忽视 `electronegativity_type` 的参数值，即不对电负性边特征进行维度扩展。
-
 - **inference**：基于预训练模型使用推理学习。
   - 由于模型的初始化依赖于预训练模型的具体架构细节。所以，我们建议 user 使用我们提供的示例代码和预训练模型进行尝试。如果希望用自己的训练模型，需要先用一套模型训练脚本生成预训练模型，再在这套训练脚本中加上 `--inference` 即可实现推理学习。
-
 - **ig**：基于预训练模型进行解释性实验，并输出可视化结果。
   - 与 `inference` 流程一样，在得到预训练模型的那套脚本中加上 `--ig` 参数，或使用我们提供的示例代码和预训练模型，即可实现针对原子描述符特征的可解释性分析结果。
-
 - **max_neighbours**：经过实验验证，虽然限制中心原子的邻居数量能够一定程度上减少模型的参数量和训练时间，但在最终的 MAE 指标上，仅依赖截止半径的预测结果优于使用截断半径与最大邻居数双重限制的模型性能。
   - 我们建议设置 `max_neighbours==-1`。
 
@@ -174,7 +169,7 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 我们提供了 2 种脚本执行方式：
 
 1. 在命令行终端执行脚本（示例脚本如下所示）；
-2. 执行 `/scripts/linux_train_atomnet.py`。
+2. Linux 系统执行 `/scripts/linux_train_atomnet.py`，Windows 系统执行 `/scripts/train_atomnet_jarvis.py`。
 
 
 
@@ -525,7 +520,7 @@ python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare
 | 32   | 128  | 1.0      | 1.0     | 0.000026 |
 | 64   | 128  | 1.0      | 1.0     | 0.000002 |
 
-<img src="/figure/total_energy_IG(with different steps).png" alt="image-20260122151541456" style="zoom:30%;" />
+
 
 ## 模型效率
 

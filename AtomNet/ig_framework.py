@@ -36,7 +36,7 @@ def get_baseline(
         mean_vec = data.x.mean(dim=0, keepdim=True)  # [1, F]
         return mean_vec.expand_as(data.x).clone()
     elif mode == "dataset_mean":
-        assert dataset_mean_vec is not None, "dataset_mean 模式需要提供 dataset_mean_vec"
+        assert dataset_mean_vec is not None, "The dataset_mean pattern requires the provision of dataset_mean_vec"
         mean_vec = dataset_mean_vec.view(1, -1).to(data.x.device)  # [1, F]
         return mean_vec.expand_as(data.x).clone()
     else:
@@ -183,9 +183,6 @@ def compute_ig_importance_dataset(
         # for idx, row in grouped_df.iterrows():
         #     print(f"#{idx + 1:<2d} {row['group']:<30s}: {row['importance']:.6f}")
 
-        """ 
-        Draw a horizontal bar chart of the top top_k in terms of feature importance
-        """
         top_k = 20
         df_top = df.head(top_k)
 
@@ -218,35 +215,30 @@ def compute_ig_importance_dataset(
         # plt.savefig(f"./dataset/ig/img/top20_{ig_steps}_{cfg.name}.jpeg", dpi=1000, bbox_inches="tight")
         plt.show()
 
-
-        """ 
-        绘制分组求和后的特征重要性 
-        """
         plt.figure(figsize=(12, 6))
         bars = plt.barh(
             grouped_df["group"],
             grouped_df["importance"],
             color="#e69f00",
         )
-        plt.gca().invert_yaxis()  # 重要性高的在上方
+        plt.gca().invert_yaxis()
         plt.xlabel("Group Feature Importance (mean |IG|)", fontsize=12)
         plt.ylabel("")
         # plt.title(f"IG Feature Importance — {cfg.name} (Jarvis DFT-3D)", fontsize=16, weight="bold", pad=15)
 
-        # 添加每个横条的数值标签（右侧显示）
         for bar in bars:
             width = bar.get_width()
-            plt.text(width + 0.0005,  # 稍微右移一点
+            plt.text(width + 0.0005,
                      bar.get_y() + bar.get_height() / 2,
                      f"{width:.6f}",
                      va='center', ha='left', fontsize=10)
-        # 添加x, y轴网格线
+
         plt.grid(axis='x', linestyle='--', alpha=0.7)
         # plt.grid(axis='y', linestyle='--', color='gray', alpha=0.6)
-        # 去除上和右的边框，使风格更简洁
+
         plt.gca().spines['right'].set_visible(False)
         plt.gca().spines['top'].set_visible(False)
-        # 保存高清图片
+
         plt.savefig(os.path.join(save_figure_dir, f"IG_{ig_steps}_{cfg.name}.pdf"), format="pdf", bbox_inches="tight")
         # plt.savefig("./dataset/ig/img/IG_{}_{}.jpeg".format(ig_steps, cfg.name),
         #             dpi=1000, bbox_inches="tight")
@@ -256,57 +248,47 @@ def compute_ig_importance_dataset(
         grouped_df.to_csv(save_csv_path.replace(".csv", "_grouped.csv"), index=False, encoding="utf-8-sig")
         print(f"[IG] Feature importance saved to: {save_csv_path}")
 
-    # print("打印为排序的 group 和 importance ……")
-    # print(tmp_df)
     return np.array(tmp_df["group"]), np.array(tmp_df["importance"])
 
 
-def IG_metric(model, loader):  # IG 主函数入口
-    # 加载预训练模型
+def IG_metric(model, loader):
     ckpt_path = f'{cfg.run_dir}/ckpt/best.ckpt'
-    assert os.path.exists(ckpt_path), "model 参数文件不存在 ❌"
+    assert os.path.exists(ckpt_path), "model parameter file does not exist. ❌"
 
     ckpt = torch.load(ckpt_path)
     model.load_state_dict(ckpt["model_state"])
 
-    # 可选：特征名（若你有 116 维对应的名字列表）
     atom_init = cfg.atom_init
     feature_file_path = f'./dataset/csv/{atom_init}.csv'
-    assert os.path.exists(feature_file_path), f"{atom_init} 文件不存在 ❌"
+    assert os.path.exists(feature_file_path), f"{atom_init} file does not exist. ❌"
 
     save_dir = "./dataset/ig/img"
     os.makedirs(save_dir, exist_ok=True)
 
     df = pd.read_csv(feature_file_path, index_col=0)
     feature_names = df.columns.tolist()
-    assert len(feature_names) == 116, "特征名数量不匹配!"
+    assert len(feature_names) == 116, "The number of feature names does not match!"
 
-    # --------------------
-    # 运行多步数实验并比较
-    # --------------------
     results = {}  # n_steps -> (group_names, group_scores, per_graph_group)
-    n_steps_list = [20, 32, 64, 128]  # 要比较的积分步数
+    n_steps_list = [20, 32, 64, 128]
     for n in n_steps_list:
-        # 计算数据集层面的特征重要性（IG）
+        # Calculate the feature importance (IG) at the dataset level
         group_names, group_scores = compute_ig_importance_dataset(
             model=model,
             loader=loader,  # train_loader
-            target=None,  # 回归通常就是 0；但我们的 pred 是经过 squeeze(1)的，所以要写 None
-            baseline_mode="zeros",  # 可选： "zeros" / "batch_mean" / "dataset_mean"
-            ig_steps=n,  # IG 积分步数，常用 32~128
-            use_abs=True,  # 建议取绝对值再聚合
+            target=None,
+            baseline_mode="zeros",  #  "zeros" / "batch_mean" / "dataset_mean"
+            ig_steps=n,
+            use_abs=True,
             feature_names=feature_names,
             save_figure_dir=save_dir,
             save_csv_path=f"./dataset/ig/ig_{n}_{cfg.name}.csv",
         )
         results[n] = (group_names, group_scores)
 
-    # --------------------
-    # 比较：Spearman, Kendall, Top-k overlap, percent change
-    # --------------------
     def topk_overlap(a, b, k=5):
         # a,b are arrays of group scores (same order), returns Jaccard overlap for top-k sets
-        topa = set(np.array(group_names)[np.argsort(-a)[:k]])  # argsort(-a) 返回的是索引数组，表示从大到小排列时各个元素的位置。
+        topa = set(np.array(group_names)[np.argsort(-a)[:k]])
         topb = set(np.array(group_names)[np.argsort(-b)[:k]])
         inter = len(topa & topb)
         return inter / k, inter, topa, topb
@@ -322,8 +304,6 @@ def IG_metric(model, loader):  # IG 主函数入口
             _, aj = results[nj]
             rho, p_rho = spearmanr(ai, aj)
             tau, p_tau = kendalltau(ai, aj)
-            # top3_overlap, inter3, _, _ = topk_overlap(ai, aj, k=3)
-            # top5_overlap, inter5, _, _ = topk_overlap(ai, aj, k=5)
             top8_overlap, inter8, _, _ = topk_overlap(ai, aj, k=8)
             # percent change in scores
             pct_change = np.abs(ai - aj) / (np.abs(ai) + 1e-12)
@@ -340,13 +320,9 @@ def IG_metric(model, loader):  # IG 主函数入口
     print("\nPairwise comparison summary:")
     print(summary_df)
 
-    # --------------------
-    # 可视化：比较不同 n_steps 的 group bar chart 并列
-    # --------------------
     plt.figure(figsize=(10, 6))
 
-    # 定义浅色系颜色（可替换为你喜欢的风格）
-    colors = ['#9ecae1', '#fdae6b', '#a1d99b', '#fc9272']  # 浅蓝 / 浅橙 / 浅绿 / 浅红
+    colors = ['#9ecae1', '#fdae6b', '#a1d99b', '#fc9272']
 
     x = np.arange(len(group_names))
     width = 0.18
@@ -363,22 +339,18 @@ def IG_metric(model, loader):  # IG 主函数入口
     plt.ylabel("Group importance (mean |IG|)")
     # plt.title("IG group importance for different n_steps")
 
-    # 添加x, y轴网格线
     plt.grid(axis='y', linestyle='--', color='gray', alpha=0.7)
-    # 去除上和右的边框，使风格更简洁
+
     plt.gca().spines['right'].set_visible(False)
     plt.gca().spines['top'].set_visible(False)
 
-    plt.legend()  # 在图中添加图例（Legend），显示每个颜色对应的标签（通常由 label= 参数定义）。
-    plt.tight_layout()  # 自动调整子图（或整个绘图区域）之间的间距与边缘空白，避免文字、坐标轴标签或标题被裁切或重叠。
+    plt.legend()
+    plt.tight_layout()
 
     plt.savefig(f"./dataset/ig/img/seed_{cfg.seed}_{cfg.figshare_target}_IG.pdf", format="pdf", bbox_inches="tight")
     # plt.savefig(f"./dataset/ig/img/seed_{cfg.seed}_{cfg.figshare_target}_IG.jpeg", dpi=1000, bbox_inches="tight")
     plt.show()
 
-    # --------------------
-    # 若需要：打印每个 n_steps 的排序
-    # --------------------
     for n in keys:
         _, scores = results[n]
         order = np.argsort(-scores)

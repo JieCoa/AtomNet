@@ -1,6 +1,5 @@
 import torch
 from dataset.figshare_dataset import Figshare_Dataset
-from dataset.utils import compute_knn
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.loader import DataLoader
 from jarvis.db.figshare import data as jdata
@@ -11,16 +10,14 @@ import math
 import pickle as pk
 import gc
 import pandas as pd
-from jarvis_utils import *
 from datetime import datetime
 
 
-def create_loader():
+def create_loader(seed=123):
     if cfg.dataset.name == "jarvis" or cfg.dataset.name == "megnet":
         if cfg.dataset.name == "jarvis":
             cfg.dataset.name = "dft_3d_2021"
 
-        seed = 123
         target = cfg.figshare_target
         if cfg.figshare_target in ["shear modulus", "bulk modulus"] and cfg.dataset.name == "megnet":
             target = cfg.figshare_target
@@ -58,24 +55,14 @@ def create_loader():
                         targets.append(i[target])
 
         else:
-            """ 用于 autodl 等无法加载 jdata 数据集的云服务器 
-            if cfg.dataset.name == "dft_3d_2021":
-                jdata_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/jarvis/original/')
-            # ① 论文：读取数据集
-            data = jdata(cfg.dataset.name, store_dir=jdata_path)
-            """
-            # ① 论文：读取数据集
             data = jdata(cfg.dataset.name)
 
-            # ② 只选含铁、钴、镍元素的材料
-            # data = getDataById(cfg.dataset.name)  # 自己写的 utils
-
-            print("数据集的长度：", len(data))
+            print("The size of dataset：", len(data))
             dat = []
             all_targets = []
-            # 数据异常值筛选
+
             for i in data:
-                if isinstance(i[target], list):  # 如果i[target]是列表
+                if isinstance(i[target], list):
                     all_targets.append(torch.tensor(i[target]))
                     dat.append(i)
                 elif i[target] is not None and i[target] != "na" and not math.isnan(i[target]):
@@ -94,15 +81,12 @@ def create_loader():
             del data
             del dat
 
-        radius = cfg.radius  # 邻域的截止半径
+        radius = cfg.radius
         # "dft_3d_2021_5_-1_formation_energy_peratom_123"
         prefix = cfg.dataset.name+"_"+str(radius)+"_"+str(cfg.max_neighbours)+"_"+target+"_"+str(seed)
-        print("dat_train 的长度", len(dat_train))
-        print("dat_val 的长度", len(dat_val))
-        print("dat_test 的长度", len(dat_test))
+
         dataset_train = Figshare_Dataset(root=cfg.dataset_path, data=dat_train, targets=targets_train, radius=radius,
                                          max_neigh=cfg.max_neighbours, name=prefix+"_train", atom_init=cfg.atom_init)
-        print("打印 dataset_train.data: ", dataset_train.data)  # Data 对象
         dataset_val = Figshare_Dataset(root=cfg.dataset_path, data=dat_val, targets=targets_val, radius=radius,
                                        max_neigh=cfg.max_neighbours, name=prefix+"_val", atom_init=cfg.atom_init)
         dataset_test = Figshare_Dataset(root=cfg.dataset_path, data=dat_test, targets=targets_test, radius=radius,
@@ -140,36 +124,40 @@ def create_loader():
     return loaders
 
 
-def create_inference_loader():
+def create_inference_loader(use_processed_data=False):
     """
-    data 是 json 文件，由 atoms 字典组成的列表，每个 atoms 字典代表一个晶体结构，要求包含以下属性：
+    data is a json file, a list composed of atoms dictionaries, each representing a crystal structure.
+    It is required to include the following attributes:
     -----------------
-    lattice_mat: 晶格矩阵，3x3 的 numpy 数组
-    coords: 坐标，nx3 的 numpy 数组
-    elements: 元素，n 个元素的列表
-    "cartesian": 是否使用笛卡尔坐标
-    "props": [] 用空列表即可，用不到
+    lattice_mat: Lattice matrix, a 3x3 numpy array.
+    coords: Coordinates, a numpy array of nx3.
+    elements: Element, a list of n elements.
+    "cartesian": Whether to use Cartesian coordinates.
+    "props": An empty list is fine, it's not needed.
     """
     assert open(cfg.inference_data_path, "r").readable(), f"{cfg.inference_data_path} is not readable"
-    data = json.load(open(cfg.inference_data_path, "r"))
-    print("The length of the inference dataset: ", len(data))
 
-    # Tags are not needed for reasoning
-    all_targets = [0.] * len(data)
-
-    if len(data):
-        dataset = Figshare_Dataset(root=cfg.inference_path, data=data, targets=all_targets, radius=cfg.radius,
-                                   max_neigh=cfg.max_neighbours, name=f"inference_{datetime.now().strftime('%Y%m%d%H%M')}",
-                                   atom_init=cfg.atom_init)
+    if use_processed_data:  # Use the test dataset for reasoning
+        print("Loading processed test data...")
+        return create_loader()[2]
     else:
-        raise Exception("Datasets are not available!")
+        print("Loading inference data from json...")
+        data = json.load(open(cfg.inference_data_path, "r"))
+        print("The length of the inference dataset: ", len(data))
 
-    return DataLoader(dataset, batch_size=cfg.batch, shuffle=False, num_workers=cfg.workers, pin_memory=True)
+        # Tags are not needed for reasoning
+        all_targets = [0.] * len(data)
+
+        if len(data):
+            dataset = Figshare_Dataset(root=cfg.inference_path, data=data, targets=all_targets, radius=cfg.radius,
+                                       max_neigh=cfg.max_neighbours, name=f"inference_{datetime.now().strftime('%Y%m%d%H%M')}",
+                                       atom_init=cfg.atom_init)
+        else:
+            raise Exception("Datasets are not available!")
+
+        return DataLoader(dataset, batch_size=cfg.batch, shuffle=False, num_workers=cfg.workers, pin_memory=True)
 
 
-"""
-数据集划分训练集、验证集和测试集，返回数据集的下标
-"""
 def create_train_val_test(data, val_ratio=0.1, test_ratio=0.1, seed=123):
     ids = list(np.arange(len(data)))
     n = len(data)

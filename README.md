@@ -71,7 +71,6 @@ The datasets are automatically downloaded and processed by the code (📂`loader
 
 - **atom_init**: Filename of the atom descriptors used to initialize node representations (suffix `.json` is auto-completed; all atom descriptor files are stored in 📂`dataset` → 📂`json`).
 - **name**: Name of the current wandb experiment, which will be synchronized to the corresponding `wandb_project` to generate training records.
-  1. If substrings `newRBF, newRBF02, newRBF03, newRBF04, newRBF05` appear in the `name` attribute, it indicates using **different RBF kernel functions** (different feature dimensions, whether to use cosine function for weighting, etc.) for feature derivation on Sanderson electronegativity edge features.
 - **electronegativity_type**: Use **different RBF kernel functions** for Sanderson electronegativity edge features.
 - **envelope_type**: We provide **Cubic Smooth** and **Simply** weight functions proposed in the main paper and supplementary files, i.e., `cubic` and `simply`.
 - **disableUpdateEdge**: <u>Limit</u> or <u>stop</u> the update of edge features during the **message passing process**.
@@ -156,7 +155,7 @@ We provide two methods for executing scripts for model training and inference:
 
 1. Execute the script in the command-line terminal (example script shown below);
 
-2. Execute `/scripts/linux_train_atomnet.py`.
+2. Execute `/scripts/linux_train_atomnet.py` for **Linux** and `/scripts/train_atomnet_jarvis.py` for **Windows**.
 
 
 

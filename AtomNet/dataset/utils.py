@@ -62,19 +62,18 @@ def radius_graph_pbc(
     device = data.pos.device
     batch_size = len(data.natoms)
 
-    if hasattr(data, "pbc"):  # 检查 data 是否有属性 pbc
-        data.pbc = torch.atleast_2d(data.pbc)  # 将 data.pbc 转换为至少二维的属性
+    if hasattr(data, "pbc"):
+        data.pbc = torch.atleast_2d(data.pbc)
         for i in range(3):
-            if not torch.any(data.pbc[:, i]).item():  # 如果所有元素都为 False
+            if not torch.any(data.pbc[:, i]).item():
                 pbc[i] = False
-            elif torch.all(data.pbc[:, i]).item():  # 如果所有元素都为 True
+            elif torch.all(data.pbc[:, i]).item():
                 pbc[i] = True
             else:
                 raise RuntimeError(
                     "Different structures in the batch have different PBC configurations. This is not currently supported."
                 )
 
-    # 每个原子的笛卡尔坐标
     atom_pos = data.pos
 
     # Before computing the pairwise distances between atoms, first create a list of atom indices to compare for the entire batch
@@ -190,19 +189,12 @@ def radius_graph_pbc(
     # Add the PBC offsets for the second atom
     pos2 = pos2 + pbc_offsets_per_atom
 
-    """
-    计算每个原子对的平方距离
-    """
     # Compute the squared distance between atoms
     direction = pos1 - pos2
     atom_distance_sqr = torch.sum((direction) ** 2, dim=1)
     direction = direction.permute(0, 2, 1).reshape(-1, 3)
     atom_distance_sqr = atom_distance_sqr.view(-1)
 
-    """
-    1. 根据给定的半径筛选出距离在范围内的原子对；
-    2. 移除自身与自身之间的对（距离为0）。
-    """
     # Remove pairs that are too far apart
     mask_within_radius = torch.le(atom_distance_sqr, radius * radius)
     # Remove pairs with the same atoms (distance = 0.0)
@@ -217,9 +209,6 @@ def radius_graph_pbc(
     atom_distance_sqr = torch.masked_select(atom_distance_sqr, mask)
     direction = torch.masked_select(direction, mask.view(-1, 1).expand(-1, 3)).view(-1, 3)
 
-    """
-    如果设置了最大邻居数，根据该限制进一步筛选原子对
-    """
     if max_num_neighbors_threshold is not None:
         mask_num_neighbors, num_neighbors_image = get_max_neighbors_mask(
             natoms=data.natoms,
@@ -240,12 +229,8 @@ def radius_graph_pbc(
             )
             unit_cell = unit_cell.view(-1, 3)
 
-    """
-    生成图的边索引，表示原子之间的连接。
-    """
     edge_index = torch.stack((index2, index1))
 
-    # 返回边索引、单位细胞、原子之间的距离和方向
     return edge_index, unit_cell, torch.sqrt(atom_distance_sqr), direction
 
 
@@ -378,138 +363,3 @@ def get_max_neighbors_mask(
     mask_num_neighbors.index_fill_(0, index_sort, True)
 
     return mask_num_neighbors, num_neighbors_image
-
-
-# 用于 ADP
-def rotate_crystal_to_lattice(lattice_matrix):
-    """
-    Rotate the crystal such that:
-    - The x-axis aligns with the first lattice vector.
-    - The y-axis lies in the plane of the first and second lattice vectors.
-    - The z-axis is the cross product of the new x and y axes.
-    
-    Parameters:
-        lattice_matrix: 3x3 matrix with lattice vectors as rows.
-        
-    Returns:
-        rotation_matrix: 3x3 rotation matrix.
-        new_lattice_matrix: 3x3 new lattice matrix.
-    """
-    
-    a1 = lattice_matrix[0]
-    x_axis = a1 / torch.linalg.norm(a1)
-    
-    
-    a2 = lattice_matrix[1]
-    a2_proj = a2 - torch.dot(a2, x_axis) * x_axis
-    y_axis = a2_proj / torch.linalg.norm(a2_proj)
-    
-    
-    z_axis = torch.cross(x_axis, y_axis)
-    
-    
-    rotation_matrix = torch.stack([x_axis, y_axis, z_axis])
-    
-    
-    new_lattice_matrix = lattice_matrix @ rotation_matrix.T
-    
-    return rotation_matrix, new_lattice_matrix
-
-
-# 用于 ADP
-def expand_lattice(lattice_vectors, repetitions=2):
-    lattice_vectors_expanded = []
-    for i in range(-repetitions, repetitions + 1):
-        for j in range(-repetitions, repetitions + 1):
-            for k in range(-repetitions, repetitions + 1):
-                if i == 0 and j == 0 and k == 0:
-                    continue
-                lattice_vectors_expanded.append(i * lattice_vectors[0] + j * lattice_vectors[1] + k * lattice_vectors[2])
-    return torch.stack(lattice_vectors_expanded)
-
-
-# 用于 ADP
-def vector_angle(v1, v2):
-    cos_theta = torch.dot(v1, v2) / (torch.norm(v1) * torch.norm(v2))
-    return torch.abs(torch.acos(cos_theta))
-
-
-# 用于 ADP
-def find_right_hand_system(vectors):
-    if torch.dot(torch.cross(vectors[0], vectors[1]), vectors[2]) < 0:
-        vectors = -vectors
-
-    return vectors
-
-
-# 用于 ADP
-def optmize_lattice(lattice_vectors):
-    expanded_lattice = expand_lattice(lattice_vectors)
-
-    origin = torch.zeros(3)
-
-    distances = torch.norm(expanded_lattice - origin, dim=1)
-    sorted_indices = torch.argsort(distances)
-
-    closest_vectors = expanded_lattice[sorted_indices]
-
-    v1 = closest_vectors[0]
-    for i,v in enumerate(closest_vectors[1:]):
-        if not torch.isclose(torch.norm(torch.cross(v1, v)),torch.tensor(0.), atol=1e-3):
-            angle = vector_angle(v1, v)
-            if angle > np.pi / 2:
-                v2 = -v
-            else:
-                v2 = v
-            break
-        
-    for v in closest_vectors[i:]:
-        if not torch.isclose(torch.dot(torch.cross(v1, v2), v),torch.tensor(0.), atol=1e-3):
-            angle2 = vector_angle(v1, v)
-            if angle2 > np.pi / 2:
-                v3 = -v
-            else:
-                v3 = v
-            break
-    new_lattice = torch.stack([v1, v2, v3])
-    new_lattice = find_right_hand_system(new_lattice)
-    rotation_matrix, new_lattice = rotate_crystal_to_lattice(new_lattice)
-
-    return new_lattice, rotation_matrix
-
-
-# 用于 ADP
-def compute_knn(max_neigh, radius, path, refcodes):
-    print(max_neigh)
-    
-    final_root = os.path.join(path, "data_"+str(max_neigh)+"_"+str(radius)+"/")
-    print(final_root)
-    
-    if os.path.exists(final_root) and os.path.isdir(final_root):
-        logging.info("Already computed PBC for knn "+str(max_neigh) + " and radius "+str(radius))
-        return final_root
-    else:
-        os.makedirs(final_root)
-        os.makedirs(osp.join(final_root,"data/"))
-
-    
-    for split in refcodes:
-        with open(split, 'r') as file:
-            file_names = [line.strip() for line in file.readlines()]
-        for file_name in tqdm(file_names, ncols=100, desc="Computing PBC"):
-            data = torch.load(osp.join(path,"data/"+file_name+".pt"))
-            
-            data.pbc = torch.tensor([[True, True, True]])
-
-            batch = Batch.from_data_list([data])
-            edge_index, _, _, cart_vector = radius_graph_pbc(batch, radius, max_neigh)
-            
-            data.edge_index = edge_index
-            data.cart_dist = torch.norm(cart_vector, p=2, dim=-1).unsqueeze(-1)
-            data.cart_dir = torch.nn.functional.normalize(cart_vector, p=2, dim=-1)
-
-            torch.save(data, osp.join(final_root,"data/"+file_name+".pt"))
-    return final_root
-    
-
-

@@ -1,14 +1,12 @@
 import os
 
-# 设置环境变量
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-# 切换到上一级目录
 os.chdir("..")
 
 jarvis = [
     # ----- jarvis -----
-    # 🚀形成能
+    # 🚀 Formation energy
     # "python main.py --seed 212 --name seed\(212\)_\(atom_number\)jarvis_dft_3D_formation_energy_peratom --dataset jarvis "
     # "--figshare_target formation_energy_peratom --threads 6 --workers 3 --epochs 300",
 
@@ -114,5 +112,4 @@ for cmd in ig:
     os.system(cmd)
     print("--------------------------------------------------")
     print(f"Command '{cmd}' executed successfully.")
-    # print("验证: 使用 自注意力 计算权重")
     print("--------------------------------------------------")

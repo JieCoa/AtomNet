@@ -113,6 +113,7 @@ if __name__ == "__main__":
     cfg.dataset_path = args.dataset_path
     cfg.inference_path = args.inference_path
     cfg.inference_data_path = args.inference_data_path
+    cfg.useProcessedData = True  # inference dataset
     cfg.figshare_target = args.figshare_target
     cfg.wandb_project = args.wandb_project
     cfg.wandb_entity = args.wandb_entity
@@ -177,7 +178,8 @@ if __name__ == "__main__":
     logging.info(f"Experiment will be saved at: {cfg.run_dir}")
 
     if args.inference:  # Inference uses an additional incoming dataset (requiring a list of dictionaries containing the specified key)
-        inference_loader = create_inference_loader()
+        inference_loader = create_inference_loader(use_processed_data=cfg.useProcessedData)
+        logging.info(f"Use processed dataset for Inference: {cfg.useProcessedData}.")
     else:
         loaders = create_loader()
 
@@ -200,7 +202,7 @@ if __name__ == "__main__":
         model.load_state_dict(ckpt["model_state"])
         # cfg.inference_output = args.inference_output
 
-        inference(model, inference_loader)
+        inference(model, inference_loader, cfg.useProcessedData)
 
     elif args.ig:  # Feature importance ranking
         logging.info("📊 Start computing feature importance...")

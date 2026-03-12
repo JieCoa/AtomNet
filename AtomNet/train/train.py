@@ -124,9 +124,6 @@ def train(model, loaders, optimizer, loggers):
         swa_utils.update_bn(loaders[0], swa_model, device=device)
         torch.save(swa_model.state_dict(), osp.join(ckpt_dir, 'swa.ckpt'))
 
-    """
-    test
-    """
     ckpt = torch.load(ckpt_path)
     model.load_state_dict(ckpt["model_state"])
 
@@ -149,7 +146,7 @@ def train(model, loaders, optimizer, loggers):
                 f"test_loss: {perf_test['loss']:.4f} {best_test}"
             )
 
-    if cfg.useSWA:  # SWA 测试
+    if cfg.useSWA:
         swa_ckpt = torch.load(osp.join(ckpt_dir, 'swa.ckpt'))
         swa_model.load_state_dict(swa_ckpt)
         aver_MAE = swa_eval_epoch(loaders[-1], swa_model)

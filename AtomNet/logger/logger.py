@@ -18,9 +18,8 @@ warnings.warn = warn
 
 
 class CustomLogger(Logger):
-    def __init__(self,*args, **kwargs, ):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
 
     def reset(self):
         self._iter = 0
@@ -47,7 +46,6 @@ class CustomLogger(Logger):
             stats['gpu_memory'] = gpu_memory
         return stats
 
-
     def regression(self):
         true, pred = torch.cat(self._true), torch.cat(self._pred)
         
@@ -64,7 +62,6 @@ class CustomLogger(Logger):
         for key, val in self._custom_stats.items():
             out[key] = val / self._size_current
         return out
-
 
     def update_stats(self, true, pred, loss, lr, time_used, params,
                      dataset_name=None, classes=None, **kwargs):
@@ -151,7 +148,6 @@ def create_logger():
         loggers.append(CustomLogger(name=name, task_type="regression"))
     return loggers
     
-
 
 def eval_spearmanr(y_true, y_pred):
     """
