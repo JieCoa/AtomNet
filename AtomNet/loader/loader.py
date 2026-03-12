@@ -167,6 +167,6 @@ def create_train_val_test(data, val_ratio=0.1, test_ratio=0.1, seed=123):
     random.seed(seed)
     random.shuffle(ids)
     ids_train = ids[:n_train]
-    ids_val = ids[-(n_val + n_test): -n_test]  # 从倒数 (n_val + n_test) 到倒数 n_test 的部分作为验证集。
+    ids_val = ids[-(n_val + n_test): -n_test]
     ids_test = ids[-n_test:]
     return ids_train, ids_val, ids_test

@@ -18,9 +18,10 @@ import re
 from ig_framework import IG_metric
 import time
 import pandas as pd
+from train.metrics import compute_metrics_and_logging, compute_loss
 
 
-def inference(model, loader):
+def inference(model, loader, useProcessedData=False):
     """
     Run inference using the trained model and save the results.
     """
@@ -32,18 +33,28 @@ def inference(model, loader):
     time_start = time.time()
 
     with torch.no_grad():
+        sum_MAE = 0
+        size = 0
         for iter, batch in tqdm(enumerate(loader), total=len(loader), ncols=50):
             batch.to("cuda:0")
-            pred, _ = model(batch)
+            pred, true = model(batch)
             inference_list.append(pred.detach().cpu().numpy())
 
+            if useProcessedData:
+                MAE, _ = compute_loss(pred, true)
+                sum_MAE += MAE.detach().mean().item() * true.detach().to("cpu").shape[0]
+                size += true.detach().to("cpu").shape[0]
+
+        logging.info(f"MAE of Test dataset: {sum_MAE/size:.4f}")
+
+    logging.info("Finish inference!")
     logging.info(
-        f"(Inference time : {np.mean(time.time() - time_start):.1f}s) | "
-        f"Inference results : {inference_list}\t"
+        f"Inference time : {np.mean(time.time() - time_start):.1f}s"
     )
 
     inference_list_json = [pred.tolist() for pred in inference_list]
-    logging.info(f"Inference results : {inference_list_json}\t")
+    if not useProcessedData:
+        logging.info(f"Inference results : {inference_list_json}\t")
 
     with open("dataset/inference/inference_results.json", "w") as f:
         json.dump(inference_list_json, f, indent=2)
