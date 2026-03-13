@@ -71,13 +71,13 @@ pip install numpy==1.26.0
 
 
 
-## 数据集
+## ⭐数据集
 
-The datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). （读取文件路径记得改成自己的数据存放路径）
+大部分数据集会自动联网下载，并通过代码 (📂`loader` → `loader.py`)进行数据预处理，在 [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430) 上公开提供的体积模量和剪切模量数据集，需要手动下载并存放到 `dataset/megnet/` 路径下。（读取文件路径记得改成自己的数据存放路径）
 
 
 
-## 参数说明⭐
+## 参数说明
 
 > 我们在 main.py 设计了大量的指令参数，每个参数我们都提供了相关的描述。对于部分重要参数，我们进行详细说明，帮助 user 更好的复现我们的实验。对于未提及的参数，我们建议保留使用默认值。
 
@@ -204,7 +204,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
@@ -238,7 +238,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
@@ -449,6 +449,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
 ```
 
 
@@ -490,7 +491,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 第一步：训练模型（如果使用预训练模型，跳过）
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 第二步：进行解释性分析实验
@@ -498,7 +499,7 @@ python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare
 > 就是在训练模型脚本基础上加一个 `ig` 参数
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05 --ig
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --ig
 ```
 
 第三步：结果可视化

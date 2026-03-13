@@ -61,11 +61,17 @@ pip install captum
 pip install numpy==1.26.0
 ```
 
-## Datasets
+## ⭐Datasets
 
-The datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). (Remember to change the file path to your own data storage path).
+> Most of original datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). The bulk modulus and shear modulus datasets need to be manually downloaded and stored in the `dataset/megnet/` path. (Remember to change the file path to your own data storage path).
+>
+> ❗ Place **the preprocessed datasets** in the `dataset/jarvis/preprocessed/` directory.
+>
+> - :mag_right: [Jarvis DFT 3D 2021](https://doi.org/10.5281/zenodo.18993843)
 
-## Parameter Description ⭐
+
+
+## Parameter Description 
 
 > We designed a large number of command arguments in `main.py`, and we provide relevant descriptions for each parameter. We explain some important parameters in detail to help users better reproduce our experiments. For parameters not mentioned, we recommend keeping the default values.
 
@@ -190,7 +196,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
@@ -224,7 +230,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features(116d)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 
@@ -436,7 +442,7 @@ python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target
 ##### 5. total energy
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05 --inference
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
 ```
 
 
@@ -478,7 +484,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 Step 1: Train the model (skip if using a pre-trained model)
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF
 ```
 
 Step 2: Conduct interpretability analysis experiment
@@ -486,7 +492,7 @@ Step 2: Conduct interpretability analysis experiment
 > Simply add an `ig` parameter to the training script base.
 
 ```shell
-python main.py --seed 303 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF05 --ig
+python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --ig
 ```
 
 Step 3: Result Visualization
