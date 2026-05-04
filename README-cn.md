@@ -37,7 +37,7 @@ conda activate '对应环境名'
 > 这是作者之前在服务器上手动配置记录，时间久远，可能遗漏部分库的安装。如果遇到部分库缺少，请自行安装补全。
 
 ```shell
-conda create -n cartnet python=3.11
+conda create -n atomnet python=3.11
 
 conda install pytorch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 pytorch-cuda=12.1 -c nvidia
 # 如果遇到NVIDIA 官方 Conda channel 的 bug（包文件损坏或元数据校验错误），全球用户都会遇到。使用下面命令↓，pytorch-cuda=12.1 默认依赖 cuda-version >=12,<13，会去取最新（即 12.9）；我们手动固定 cuda-version=12.1 → 规避损坏的 12.9-3 包。

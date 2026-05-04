@@ -1,5 +1,4 @@
 import os
-
 import torch
 import torch.nn.functional as F
 import logging
@@ -133,7 +132,6 @@ if __name__ == "__main__":
     cfg.lr = args.lr
     cfg.warmup = args.warmup
     cfg.model = args.model
-    # We found that when the number of neighbors was not restricted, the model's performance improved.
     cfg.max_neighbours = args.max_neighbours
     cfg.radius = args.radius
     cfg.num_layers = args.num_layers
@@ -159,7 +157,6 @@ if __name__ == "__main__":
     cfg.eneg_type = args.electronegativity_type if cfg.useElectronegativity and not cfg.normalizedElectronegativity else None
     cfg.envelope_type = args.envelope_type if cfg.newEnvelope else None
 
-    # 根据参数生成对应的 name
     parts = [f"seed({cfg.seed})_({cfg.batch}batch"]
     if cfg.envelope_type:
         parts.append(str(cfg.envelope_type))

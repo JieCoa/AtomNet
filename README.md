@@ -23,7 +23,7 @@ Use the `environment.yml` file in the repository to automatically install the en
 conda env create -f environment.yml
 
 # Activate the environment
-conda activate 'environment_name'
+conda activate 'atomnet'
 ```
 
 **Manual installation of all environment packages**
@@ -31,7 +31,7 @@ conda activate 'environment_name'
 > This is a record of the author's previous manual configuration on the server. Since it was done some time ago, some library installations might be missing. If you encounter missing libraries, please install them manually.
 
 ```shell
-conda create -n cartnet python=3.11
+conda create -n atomnet python=3.11
 
 conda install pytorch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 pytorch-cuda=12.1 -c nvidia -c pytorch
 
@@ -63,11 +63,22 @@ pip install numpy==1.26.0
 
 ## ⭐Datasets
 
-> Most of original datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). The bulk modulus and shear modulus datasets need to be manually downloaded and stored in the `dataset/megnet/` path. (Remember to change the file path to your own data storage path).
->
-> ❗ Place **the preprocessed datasets** in the `dataset/jarvis/preprocessed/` directory.
->
-> - :mag_right: [Jarvis DFT 3D 2021](https://doi.org/10.5281/zenodo.18993843)
+Most of original datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). The bulk modulus and shear modulus datasets need to be manually downloaded and stored in the `dataset/megnet/` path. (Remember to change the file path to your own data storage path).
+
+❗ Place **the preprocessed datasets** in the `dataset/jarvis/preprocessed/` directory.
+
+- :mag_right: [Jarvis DFT 3D 2021](https://doi.org/10.5281/zenodo.18993843)
+- :mag_right: [Jarvis megnet (Materials Project 2018)]()
+
+
+
+## ⭐Pre-trained models
+
+For the five tasks in the Jarvis dataset, we provide corresponding [pre-trained models](https://zenodo.org/records/19045099) for inference.
+
+❗ Unzip the compressed file and place the 📂`results` folder in the project root directory. 
+
+- In other words, place the pre-trained models in the `results/` directory.
 
 
 

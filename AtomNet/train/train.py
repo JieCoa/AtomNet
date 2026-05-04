@@ -14,7 +14,7 @@ from torch.optim import swa_utils
 
 
 def flatten_dict(metrics):
-    """Flatten a list of train/val/test metrics into one dict to send to wandb.
+    """Flatten a list of train/val/test metrics into one dict.
 
     Args:
         metrics: List of Dicts with metrics
@@ -32,15 +32,11 @@ def flatten_dict(metrics):
 
 def train(model, loaders, optimizer, loggers):
     """
-    Train the model
-
     Args:
         model: PyTorch model
         loaders: List of PyTorch data loaders
         optimizer: PyTorch optimizer
         loggers: List of loggers
-
-    Returns: None
 
     """
 
@@ -197,22 +193,9 @@ def train_epoch(logger, loader, model, optimizer, batch_accumulation, scheduler,
         else:
             raise Exception("Loss not implemented")
 
-        """
-        loss.mean().backward()
-        Function: Calculate the gradient of the loss and perform backpropagation.
-        Details:
-        loss is a tensor that may have multiple elements (for example, the loss of each sample).
-        .mean(): If the loss is not a scalar, take the average value to convert it to a scalar (PyTorch requires that the loss of backpropagation be a scalar).
-        .backward(): Performs backpropagation, calculates the gradient of the model parameters, and stores it in the.grad attribute of the parameters.
-        """
         loss.mean().backward()
 
-        """
-        Update the model parameters according to the gradient accumulation strategy and adjust the learning rate.
-        1. optimizer.step(): Update the model parameters using the accumulated gradients.
-        2. scheduler.step(): Adjust the learning rate of the optimizer according to the learning rate scheduler (such as OneCycleLR).
-        3. optimizer.zero_grad(): Reset the gradient to zero to prepare for the next round of calculation.
-        """
+        # Update the model parameters according to the gradient accumulation strategy and adjust the learning rate.
         if ((iter + 1) % batch_accumulation == 0) or (iter + 1 == len(loader)):
             optimizer.step()
             if not cfg.useSWA or cfg.useSWA and cur_epoch + cfg.swa_epochs < cfg.optim.max_epoch:
