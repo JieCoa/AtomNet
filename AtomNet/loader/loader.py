@@ -1,3 +1,4 @@
+import json
 import torch
 from dataset.figshare_dataset import Figshare_Dataset
 from torch_geometric.graphgym.config import cfg
@@ -141,7 +142,7 @@ def create_inference_loader(use_processed_data=False):
         print("Loading processed test data...")
         return create_loader()[2]
     else:
-        print("Loading inference data from json...")
+        print("Loading inference data from json ...")
         data = json.load(open(cfg.inference_data_path, "r"))
         print("The length of the inference dataset: ", len(data))
 

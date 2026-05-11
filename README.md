@@ -65,10 +65,14 @@ pip install numpy==1.26.0
 
 Most of original datasets are automatically downloaded and processed by the code (📂`loader` → `loader.py`), except for the bulk and shear modulus that are publicly available at [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430). The bulk modulus and shear modulus datasets need to be manually downloaded and stored in the `dataset/megnet/` path. (Remember to change the file path to your own data storage path).
 
+
+
+We also provide pre-processed datasets so you can directly train or infer your model. (In fact, the data preprocessing process only takes a few minutes.) 
+
 ❗ Place **the preprocessed datasets** in the `dataset/jarvis/preprocessed/` directory.
 
 - :mag_right: [Jarvis DFT 3D 2021](https://doi.org/10.5281/zenodo.18993843)
-- :mag_right: [Jarvis megnet (Materials Project 2018)]()
+- :mag_right: [Jarvis megnet (Materials Project 2018)](https://zenodo.org/records/20027439)
 
 
 
@@ -87,26 +91,42 @@ For the five tasks in the Jarvis dataset, we provide corresponding [pre-trained 
 > We designed a large number of command arguments in `main.py`, and we provide relevant descriptions for each parameter. We explain some important parameters in detail to help users better reproduce our experiments. For parameters not mentioned, we recommend keeping the default values.
 
 - **atom_init**: Filename of the atom descriptors used to initialize node representations (suffix `.json` is auto-completed; all atom descriptor files are stored in 📂`dataset` → 📂`json`).
+
 - **name**: Name of the current wandb experiment, which will be synchronized to the corresponding `wandb_project` to generate training records.
+
 - **electronegativity_type**: Use **different RBF kernel functions** for Sanderson electronegativity edge features.
+
+  ```shell
+  electronegativity_type = newRBF, newRBF02, newRBF03, newRBF04, newRBF05
+  ```
+
 - **envelope_type**: We provide **Cubic Smooth** and **Simply** weight functions proposed in the main paper and supplementary files, i.e., `cubic` and `simply`.
+
 - **disableUpdateEdge**: <u>Limit</u> or <u>stop</u> the update of edge features during the **message passing process**.
+
 - **limitedUpdateEdge**: Run edge feature updates (residual connection) in the first `limitedUpdateEdge + 1` AtomNet Layers. Used in conjunction with `disableUpdateEdge`. Value range [0, 3], corresponding to AtomNet Layer count (default: 4).
   - In the Jarvis DFT 3D 2021 BandGap(MBJ) task, we found that when setting `limitedUpdateEdge==3` (if AtomNet_layer is 4 layers), the model's MAE metric is better. Alternatively, simply remove `--disableUpdateEdge` and `--limitedUpdateEdge` from the training script.
+
 - **usePolynomial**: Default value `3`. In our experiments, besides using RBF (Radial Basis Function) for **feature derivation** on <u>interatomic distances</u>, we also applied classic **polynomial feature derivation methods** from Feature Engineering to extend "distance" features. Although not mentioned in the paper, experimental results proved the effectiveness of this method. (We recommend users to keep using the `--usePolynomial 3` parameter in all tasks to reproduce the paper results).
+
 - **useElectronegativity**: Use Sanderson electronegativity as a new edge feature.
+
 - **normalizedElectronegativity**: Used with `useElectronegativity` to normalize the electronegativity edge features.
   - When using this parameter, the `electronegativity_type` parameter value is automatically ignored (i.e., no dimension expansion on electronegativity edge features).
+
 - **inference**: Use inference learning based on a pre-trained model.
   - Since initialization depends on specific architecture details of the pre-trained model, we recommend users use our provided example code and pre-trained models for testing. If you wish to use your own trained model, you need to first generate a pre-trained model using a training script, and then add `--inference` to that training script to perform inference.
+
 - **ig**: Conduct interpretability experiments based on a pre-trained model and output visualization results.
   - Similar to the `inference` process, add the `--ig` parameter to the script used to get the pre-trained model, or use our provided example code and pre-trained models to achieve interpretability analysis results for atom descriptor features.
+
 - **max_neighbours**: Experiments verified that while limiting the number of neighbors for the central atom can reduce model parameters and training time to some extent, the prediction results relying solely on the cutoff radius are superior in terms of final MAE metrics compared to models using both cutoff radius and maximum neighbor limits.
-  - We recommend setting `max_neighbours==-1`.
 
 
 
 ### Must Modify ❗
+
+We highly recommend using [wandb](https://wandb.ai/site) to monitor model training. It's an excellent visualization website.
 
 ```python
 parser.add_argument("--wandb_project", type=str, default="your_project_name", help="Wandb project name")
@@ -123,7 +143,7 @@ Since the author used wandb for full process recording during model training, ev
 
 ### Key Settings (2 Ways)
 
-1. **Write in code**
+1. **Write in code**. e.g. `train.py`
 
    ```python
    import wandb 
@@ -131,7 +151,7 @@ Since the author used wandb for full process recording during model training, ev
    wandb.login(key=YOUR_API_KEY)
    ```
 
-2. **Set in Command Line** (Suitable for temporary use, used by the author)
+2. :+1: **Set in Command Line** (Suitable for temporary use, used by the author).
 
    ```shell
    export WANDB_API_KEY=YOUR_API_KEY
@@ -172,7 +192,7 @@ We provide two methods for executing scripts for model training and inference:
 
 1. Execute the script in the command-line terminal (example script shown below);
 
-2. Execute `/scripts/linux_train_atomnet.py` for **Linux** and `/scripts/train_atomnet_jarvis.py` for **Windows**.
+2. Execute `/scripts/linux_train_atomnet.py` for **Linux**, and `/scripts/train_atomnet_jarvis.py` for **Windows**.
 
 
 
@@ -253,13 +273,13 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 ##### 1. e_form
 
 ```shell
-python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1
+python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply
 ```
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1
+python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic
 ```
 
 ##### 3. bulk modulus
@@ -276,7 +296,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 
 
-## Inference Learning
+## Inference
 
 ### Data
 
@@ -289,7 +309,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 #### inference_data.json
 
 ```json
-// "jid": "JVASP-23213"
+// Jarvis DFT-3d 2021 - "jid": "JVASP-23213"
 [
     {"atoms": {
         "lattice_mat": [
@@ -500,7 +520,7 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 
 Step 2: Conduct interpretability analysis experiment
 
-> Simply add an `ig` parameter to the training script base.
+> Simply add an `--ig` parameter to the training script base.
 
 ```shell
 python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --ig
@@ -510,11 +530,13 @@ Step 3: Result Visualization
 
 (1) Importance of different physical properties in atom descriptors
 
-> `ig_framework.py` will visualize the importance of different atomic properties by plotting bar charts.
+> `ig_framework.py` will visualize the importance of different atomic properties by plotting bar charts. You can find the saved images in the path 📂`/dataset/ig/img/`
 
 <img src="./figure/total_energy_IG_01.png" alt="Pipeline" style="zoom:24%;" />
 
 (2) Stability analysis of IG values
+
+> The table data will be output to the console.
 
 | **n1** | **n2** | **spearman** | **kendall** | **MRC**      |
 | ------ | ------ | ------------ | ----------- | ------------ |
@@ -530,6 +552,8 @@ Step 3: Result Visualization
 <img src="./figure/efficiency_comparison.png" alt="image-20260104085058662" style="zoom:46%;" />
 
 ## Citation
+
+> The paper has not yet been formally published.
 
 Please cite our paper if you find the code helpful or if you want to use the benchmark results. Thank you!
 

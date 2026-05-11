@@ -8,7 +8,7 @@ from torch_geometric.data import Data, Batch
 from torch_scatter import segment_coo, segment_csr
 
 
-# From https://github.com/Open-Catalyst-Project
+# Adjust from https://github.com/Open-Catalyst-Project
 def get_pbc_distances(
     pos,
     edge_index,
