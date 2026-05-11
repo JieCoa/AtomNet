@@ -27,7 +27,7 @@
 conda env create -f environment.yml
 
 # Activate the environment
-conda activate '对应环境名'
+conda activate 'atomnet'
 ```
 
 
@@ -73,7 +73,24 @@ pip install numpy==1.26.0
 
 ## ⭐数据集
 
-大部分数据集会自动联网下载，并通过代码 (📂`loader` → `loader.py`)进行数据预处理，在 [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430) 上公开提供的体积模量和剪切模量数据集，需要手动下载并存放到 `dataset/megnet/` 路径下。（读取文件路径记得改成自己的数据存放路径）
+大部分数据集会自动联网下载，并通过代码 (📂`loader` → `loader.py`)进行数据预处理，在 [Figshare](https://figshare.com/projects/Bulk_and_shear_datasets/165430) 上公开提供的 **bulk modulus** 和 **shear modulus** 数据集，需要手动下载并存放到 `dataset/megnet/` 路径下。（读取文件路径记得改成自己的数据存放路径）
+
+我们也提供预处理的数据集，以便您可以直接进行模型训练或推理。（实际上，数据预处理过程仅需几分钟。）
+
+❗ 将**预处理的数据集**放置在 `dataset/jarvis/preprocessed/` 目录中。
+
+- 🔎 [Jarvis DFT 3D 2021](https://doi.org/10.5281/zenodo.18993843)
+- 🔎 [Jarvis megnet (Materials Project 2018)](https://zenodo.org/records/20027439)
+
+
+
+## ⭐Pre-trained models
+
+对于 Jarvis 数据集中的五项任务，我们提供了相应的 [预训练模型](https://zenodo.org/records/19045099) 用于推理实验。
+
+❗ 解压压缩包，并将 📂`results` 文件夹 放到项目文件的根目录。
+
+- 简而言之，就是将**预训练模型**放到 `results/` 目录中。
 
 
 
@@ -97,12 +114,12 @@ pip install numpy==1.26.0
 - **ig**：基于预训练模型进行解释性实验，并输出可视化结果。
   - 与 `inference` 流程一样，在得到预训练模型的那套脚本中加上 `--ig` 参数，或使用我们提供的示例代码和预训练模型，即可实现针对原子描述符特征的可解释性分析结果。
 - **max_neighbours**：经过实验验证，虽然限制中心原子的邻居数量能够一定程度上减少模型的参数量和训练时间，但在最终的 MAE 指标上，仅依赖截止半径的预测结果优于使用截断半径与最大邻居数双重限制的模型性能。
-  - 我们建议设置 `max_neighbours==-1`。
-
 
 
 
 ### 必须修改❗
+
+> 我们强烈推荐使用 [wandb](https://wandb.ai/site) 来监控模型训练。这是一个非常出色的可视化网站。
 
 ```python
 parser.add_argument("--wandb_project", type=str, default="你的项目名", help="Wandb project name")
@@ -115,13 +132,13 @@ parser.add_argument("--wandb_entity", type=str, default="wandb账号名", help="
 
 ## [Weights & Biases](https://wandb.ai/site)
 
-因为作者在模型训练过程中，使用 wandb 进行全流程记录，所以需要每个 user 在运行代码前，将 main.py 中的 `wandb_project` 和 `wandb_entity` 改成自己在 wandb 网站中创建的项目名和 wandb 账号名，并在运行环境配置 wandb 密钥。
+因为我们在模型训练过程中，使用 wandb 进行全流程记录，所以需要每个 user 在运行代码前，将 main.py 中的 `wandb_project` 和 `wandb_entity` 改成自己在 wandb 网站中创建的项目名和 wandb 账号名，并在运行环境配置 wandb 密钥。
 
 
 
 ### 密钥设置（2 种方式）
 
-1. 写入代码中
+1. 写入代码中，e.g. `train.py`
 
    ```python
    import wandb 
@@ -129,7 +146,7 @@ parser.add_argument("--wandb_entity", type=str, default="wandb账号名", help="
    wandb.login(key=你的密钥)
    ```
 
-2. 在**命令行设置**（适合临时使用，我用的这种方式）
+2. 在**命令行设置**（适合临时使用）
 
    ```shell
    export WANDB_API_KEY=你的密钥
@@ -169,7 +186,7 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 我们提供了 2 种脚本执行方式：
 
 1. 在命令行终端执行脚本（示例脚本如下所示）；
-2. Linux 系统执行 `/scripts/linux_train_atomnet.py`，Windows 系统执行 `/scripts/train_atomnet_jarvis.py`。
+2. Linux 系统执行 `/scripts/linux_train_atomnet.py`。
 
 
 
@@ -245,18 +262,18 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 
 ### Materials Project
 
-> 这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+> 这里我们统一提供适用于 linux 的运行脚本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
 
 ##### 1. e_form
 
 ```shell
-python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1
+python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply
 ```
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1
+python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic
 ```
 
 ##### 3. bulk  modulus
@@ -273,14 +290,14 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 
 
-## 推理学习
+## 推理
 
 ### 数据
 
 > 理想情况下，用于推理的晶体结构应区别于训练数据集，且推理数据集的数据结构应与我们提供的 `inference_data.json` 保持一致。
 >
 > - 与模型训练数据集一样，我们统一使用 `from jarvis.core.atoms import Atoms` 包处理推理数据，因此要求满足下面展示的 json 数据结构。
-> - props 可以为空，不会在数据处理过程中使用。
+> - "props" 可以为空，不会在数据处理过程中使用。
 
 #### inference_data.json
 
@@ -418,7 +435,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 ### 示例脚本
 
-> 这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+> 这里我们统一提供适用于 linux 的运行脚本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
 
 #### Jarvis DFT 3D 2021
 
@@ -484,7 +501,7 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 ## 📊可解释性结果可视化
 
-> 可解释性实验基于预训练模型。这里我们统一提供适用于 linux 的基本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+> 可解释性实验基于预训练模型。这里我们统一提供适用于 linux 的运行脚本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
 
 #### 以 total energy 为例
 
@@ -531,7 +548,7 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 
 ## 引用
 
-Please cite our paper if you find the code helpful or if you want to use the benchmark results. Thank you!
+如果您认为这段代码有帮助，或者想使用这些基准测试结果，请引用我们的论文。非常感谢。
 
 
 
