@@ -5,8 +5,9 @@
 # Physics-informed graph neural network representation learning for crystal property prediction
 
 <h3 align="center">
-  📃 <a href="" target="_blank">Paper</a>
+  📃 <a href="https://www.nature.com/articles/s41524-026-02131-9" target="_blank">Paper</a>
 </h3>
+
 
 ## AtomNet Architecture
 
@@ -553,9 +554,7 @@ Step 3: Result Visualization
 
 ## Citation
 
-> The paper has not yet been formally published.
-
-Please cite our paper if you find the code helpful or if you want to use the benchmark results. Thank you!
+Please cite [our paper](https://www.nature.com/articles/s41524-026-02131-9) if you find the code helpful or if you want to use the benchmark results. Thank you!
 
 ## Contact Us
 

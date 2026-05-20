@@ -5,8 +5,9 @@
 
 
 <h3 align="center">
-  📃 <a href="" target="_blank">Paper</a>
+  📃 <a href="https://www.nature.com/articles/s41524-026-02131-9" target="_blank">Paper</a>
 </h3>
+
 
 
 ## AtomNet 架构图
@@ -548,7 +549,7 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 
 ## 引用
 
-如果您认为这段代码有帮助，或者想使用这些基准测试结果，请引用我们的论文。非常感谢。
+如果您认为我们的代码有帮助，或者想使用这些基准测试结果，请引用[我们的论文](https://www.nature.com/articles/s41524-026-02131-9)。非常感谢！
 
 
 
