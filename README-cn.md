@@ -2,7 +2,7 @@
 
 # 用于晶体性质预测的物理信息增强图神经网络表示学习
 
-
+[![License: MIT](http://typora-image-management.oss-cn-hangzhou.aliyuncs.com/img/License-MIT-yellow.svg)](https://github.com/JieCoa/AtomNet/blob/main/LICENSE)
 
 <h3 align="center">
   📃 <a href="https://www.nature.com/articles/s41524-026-02131-9" target="_blank">Paper</a>
