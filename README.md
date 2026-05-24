@@ -558,6 +558,19 @@ Step 3: Result Visualization
 
 Please cite [our paper](https://www.nature.com/articles/s41524-026-02131-9) if you find the code helpful or if you want to use the benchmark results. Thank you!
 
+```bibtex
+# BibTex
+@article{cao2026physics,
+  title={Physics-informed graph neural network representation learning for crystal property prediction},
+  author={Cao, Jie and Huang, Kai and Mao, Jian and Zhong, Mengya and Chen, Chen and Li, Kexun and Liu, Taikang},
+  journal={npj Computational Materials},
+  year={2026},
+  publisher={Nature Publishing Group UK London}
+}
+```
+
+
+
 ## Contact Us
 
 If you have any questions or suggestions, please contact us at 202412854021@jmu.edu.cn (First Author) or kaihuang@jmu.edu.cn (Corresponding Author).
