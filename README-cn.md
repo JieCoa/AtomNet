@@ -543,7 +543,7 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 
 ## 模型效率
 
-<img src="./figure/efficiency_comparison.png" alt="image-20260104085058662" style="zoom:46%;" />
+<img src="./figure/efficiency_comparison.png" alt="image-20260104085058662" style="zoom:40%;" />
 
 
 
@@ -552,7 +552,6 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 如果您认为我们的代码有帮助，或者想使用这些基准测试结果，请引用[我们的论文](https://www.nature.com/articles/s41524-026-02131-9)。非常感谢！
 
 ```bibtex
-# BibTex
 @article{cao2026physics,
   title={Physics-informed graph neural network representation learning for crystal property prediction},
   author={Cao, Jie and Huang, Kai and Mao, Jian and Zhong, Mengya and Chen, Chen and Li, Kexun and Liu, Taikang},

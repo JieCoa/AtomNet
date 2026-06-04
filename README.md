@@ -552,14 +552,13 @@ Step 3: Result Visualization
 
 ## Model Efficiency
 
-<img src="./figure/efficiency_comparison.png" alt="image-20260104085058662" style="zoom:46%;" />
+<img src="./figure/efficiency_comparison.png" alt="image-20260104085058662" style="zoom:40%;" />
 
 ## Citation
 
 Please cite [our paper](https://www.nature.com/articles/s41524-026-02131-9) if you find the code helpful or if you want to use the benchmark results. Thank you!
 
 ```bibtex
-# BibTex
 @article{cao2026physics,
   title={Physics-informed graph neural network representation learning for crystal property prediction},
   author={Cao, Jie and Huang, Kai and Mao, Jian and Zhong, Mengya and Chen, Chen and Li, Kexun and Liu, Taikang},
