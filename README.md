@@ -1,6 +1,8 @@
 **[ <u>English</u> ]**  [[ 中文 ]](./README-cn.md)
 
-
+> We will upload the complete code for the `Atomic Descriptor` module before July 28th. This module is a data preparation process independent of model training. Researchers can customize the node representations used to initialize GNNs based on the diverse atomic physical properties provided by [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html), similar to the [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json) I provided.
+>
+> - Note: Different physical property data are obtained through different methods. For details, please refer to the [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) documentation. The sample code I provided only involves the retrieval of some properties.
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 

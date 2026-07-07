@@ -1,3 +1,7 @@
+> 我们将会在 July 28th 前上传 `Atomic Descriptor` 模块的完整代码，该模块是一个独立于模型训练的数据准备过程，研究者可以根据 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 提供的多样化的原子物理属性来自定义用于初始化 GNN 中的节点表示，类似于我提供的 [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json)。
+>
+> - Note: 不同的物理属性数据的获取方式不同，具体见 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 文档，我提供的示例代码仅涉及部分属性的获取。
+
 # Physics-informed graph neural network representation learning for crystal property prediction
 
 # 用于晶体性质预测的物理信息增强图神经网络表示学习
