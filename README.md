@@ -1,8 +1,10 @@
 **[ <u>English</u> ]**  [[ 中文 ]](./README-cn.md)
 
-> We will upload the complete code for the `Atomic Descriptor` module before July 28th. This module is a data preparation process independent of model training. Researchers can customize the node representations used to initialize GNNs based on the diverse atomic physical properties provided by [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html), similar to the [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json) I provided.
+> News - July 9th!
 >
-> - Note: Different physical property data are obtained through different methods. For details, please refer to the [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) documentation. The sample code I provided only involves the retrieval of some properties.
+> We have added the complete code and usage instructions for the `Atomic Descriptor` module. This module is a data preparation process independent of model training. Researchers can customize the node representations used to initialize GNNs based on the diverse atomic physical properties provided by [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html), similar to the [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json) I provided.
+>
+> Note: Different physical property data are obtained through different methods. For details, please refer to the [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) documentation. The sample code I provided only involves the retrieval of some properties.
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
@@ -182,6 +184,14 @@ Upload commands:
 2. Enter the `wandb` log storage path (📂`wandb` folder in the project).
 3. Execute `wandb sync "experiment_record_folder_name"` to upload records. (Ensure you can access the `wandb` website before uploading, otherwise it will time out).
 4. If uploaded successfully, a `xxx.synced` file will be generated in the directory of `"experiment_record_folder_name"`.
+
+
+
+## :new: Atomic Descriptor
+
+We have experimented with 5 sets of **Atomic Descriptor** composed of different combinations of atomic physical properties, and through repeated testing, we have proven the optimal performance of `Feature of 'Version 4' (AtomNet's atomic descriptor module): atom_features(116d)_update01`. However, we believe that there are still undiscovered combinations of physical properties that could exhibit superior performance compared to the `atom_features(116d)_update01.json` we have provided.
+
+It should be noted that in `def get_data_by_features()`, we provide three different list parameters: `atom_properties=[], atom_methods=[], public_features=[]`. Different lists correspond to different ways of obtaining parameter data. Please refer to https://mendeleev.readthedocs.io/en/stable/data.html and fill in the corresponding lists with the respective target physical properties.
 
 
 

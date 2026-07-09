@@ -1,6 +1,8 @@
-> 我们将会在 July 28th 前上传 `Atomic Descriptor` 模块的完整代码，该模块是一个独立于模型训练的数据准备过程，研究者可以根据 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 提供的多样化的原子物理属性来自定义用于初始化 GNN 中的节点表示，类似于我提供的 [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json)。
+> News - July 9th!
 >
-> - Note: 不同的物理属性数据的获取方式不同，具体见 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 文档，我提供的示例代码仅涉及部分属性的获取。
+> 我们新增了关于 `Atomic Descriptor` 模块的完整代码和使用说明，该模块是一个独立于模型训练的数据准备过程，研究者可以根据 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 提供的多样化的原子物理属性来自定义用于初始化 GNN 中的节点表示，类似于我提供的 [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json)。
+>
+> Note: 不同的物理属性数据的获取方式不同，具体见 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 文档，我提供的示例代码仅涉及部分属性的获取。
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
@@ -177,6 +179,14 @@ run = wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=cfg.na
 2. 进入 `wandb` 日志存储路径（项目中的 📂`wandb` 文件夹）
 3. 执行 `wandb sync "实验记录文件夹名"` 进行记录上传。（上传前确保能够正常访问 `wandb` 网站，否则会提示超时）
 4. 如果上传成功，`"实验记录文件夹名"` 的目录下会生成一个 `xxx.synced` 文件。
+
+
+
+## :new: Atomic Descriptor
+
+我们曾经尝试过 5 套由不同原子物理属性组合而成的 **Atomic Descriptor**，并通过反复实验证明了 `Feature of 'Version 4'(AtomNet's atomic descriptor module): atom_features(116d)_update01` 的最优性能表现。但我们相信仍有更优的未挖掘的物理属性组合，会表现出比我们提供的 `atom_features(116d)_update01.json` 更优异的表现。
+
+需要注意的是，我们在 `def get_data_by_features()` 中提供了 3 种不同的列表参数 `atom_properties=[], atom_methods=[], public_features=[]`，不同的列表对应不同的参数数据获取方式，请查阅 https://mendeleev.readthedocs.io/en/stable/data.html 并将各个目标物理属性填入对应的列表。
 
 
 
