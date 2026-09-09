@@ -8,7 +8,7 @@
 
 # 用于晶体性质预测的物理信息增强图神经网络表示学习
 
-[![License: MIT](http://typora-image-management.oss-cn-hangzhou.aliyuncs.com/img/License-MIT-yellow.svg)](https://github.com/JieCoa/AtomNet/blob/main/LICENSE) [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41524--026--02131--9-blue)](https://doi.org/10.1038/s41524-026-02131-9) [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-AtomNet-yellow?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmYyIxMDUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0wIDE4Yy00LjQxIDAtOC0zLjU5LTgtOHMzLjU5LTggOC04IDggMy41OSA4IDgtMy41OSA4LTggOHoiLz48L3N2Zz4=)](https://huggingface.co/Jie-Cao/AtomNet)
+[![License: MIT](http://typora-image-management.oss-cn-hangzhou.aliyuncs.com/img/License-MIT-yellow.svg)](https://github.com/JieCoa/AtomNet/blob/main/LICENSE) [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41524--026--02131--9-blue)](https://doi.org/10.1038/s41524-026-02131-9) [![HuggingFace](https://img.shields.io/badge/Hugging%20Face-AtomNet-FFCC00?logo=huggingface&logoColor=FFCC00)](https://huggingface.co/Jie-Cao/AtomNet)
 
 <h3 align="center">
   📃 <a href="https://www.nature.com/articles/s41524-026-02131-9" target="_blank">Paper</a>
