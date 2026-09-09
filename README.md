@@ -8,7 +8,7 @@
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
-[![License: MIT](http://typora-image-management.oss-cn-hangzhou.aliyuncs.com/img/License-MIT-yellow.svg)](https://github.com/JieCoa/AtomNet/blob/main/LICENSE)
+[![License: MIT](http://typora-image-management.oss-cn-hangzhou.aliyuncs.com/img/License-MIT-yellow.svg)](https://github.com/JieCoa/AtomNet/blob/main/LICENSE)  [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41524--026--02131--9-blue)](https://doi.org/10.1038/s41524-026-02131-9)
 
 <h3 align="center">
   📃 <a href="https://www.nature.com/articles/s41524-026-02131-9" target="_blank">Paper</a>
