@@ -1,6 +1,7 @@
-import json
+import logging
 import torch
 from dataset.figshare_dataset import Figshare_Dataset
+from dataset.inference_input import load_inference_records
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.loader import DataLoader
 from jarvis.db.figshare import data as jdata
@@ -11,7 +12,7 @@ import math
 import pickle as pk
 import gc
 import pandas as pd
-from datetime import datetime
+import tempfile
 
 
 def create_loader(seed=123):
@@ -127,36 +128,41 @@ def create_loader(seed=123):
 
 def create_inference_loader(use_processed_data=False):
     """
-    data is a json file, a list composed of atoms dictionaries, each representing a crystal structure.
-    It is required to include the following attributes:
-    -----------------
-    lattice_mat: Lattice matrix, a 3x3 numpy array.
-    coords: Coordinates, a numpy array of nx3.
-    elements: Element, a list of n elements.
-    "cartesian": Whether to use Cartesian coordinates.
-    "props": An empty list is fine, it's not needed.
-    """
-    assert open(cfg.inference_data_path, "r").readable(), f"{cfg.inference_data_path} is not readable"
+    构建推理 loader，返回 (DataLoader, ids)。
 
+    输入可以是 jarvis 风格 json（列表元素包含 "atoms"）、单个 CIF 文件，或包含多个
+    CIF 文件的目录；三者会被 dataset.inference_input 归一化成同一种结构。
+
+    atoms 字典需包含：lattice_mat (3x3)、coords (n x 3)、elements (n)；
+    "cartesian" 决定坐标含义（CIF 转出的是分数坐标），"props" 可为空列表。
+    ids 与输入记录一一对应，推理结果通过 dataset 中保留的原始下标映射回 ids。
+    """
     if use_processed_data:  # Use the test dataset for reasoning
         print("Loading processed test data...")
-        return create_loader()[2]
-    else:
-        print("Loading inference data from json ...")
-        data = json.load(open(cfg.inference_data_path, "r"))
-        print("The length of the inference dataset: ", len(data))
+        return create_loader()[2], None
 
-        # Tags are not needed for reasoning
-        all_targets = [0.] * len(data)
+    print(f"Loading inference data from {cfg.inference_data_path} ...")
+    records = load_inference_records(cfg.inference_data_path, primitive=getattr(cfg, "cif_primitive", False))
+    print("The length of the inference dataset: ", len(records))
 
-        if len(data):
-            dataset = Figshare_Dataset(root=cfg.inference_path, data=data, targets=all_targets, radius=cfg.radius,
-                                       max_neigh=cfg.max_neighbours, name=f"inference_{datetime.now().strftime('%Y%m%d%H%M')}",
-                                       atom_init=cfg.atom_init)
-        else:
-            raise Exception("Datasets are not available!")
+    # Tags are not needed for reasoning
+    ids = [record["id"] for record in records]
+    all_targets = [0.] * len(records)
 
-        return DataLoader(dataset, batch_size=cfg.batch, shuffle=False, num_workers=cfg.workers, pin_memory=True)
+    if not records:
+        raise Exception("Datasets are not available!")
+
+    # 推理数据只用于本次预测，不需要持久化预处理结果。
+    # 使用临时目录作为 InMemoryDataset 的 root，dataset 初始化后会删除临时文件。
+    with tempfile.TemporaryDirectory(prefix="atomnet_inference_") as tmp_root:
+        dataset = Figshare_Dataset(root=tmp_root, data=records, targets=all_targets, radius=cfg.radius,
+                                   max_neigh=cfg.max_neighbours, name="inference",
+                                   atom_init=cfg.atom_init, ids=ids)
+
+    if len(dataset) < len(records):
+        logging.warning(f"{len(records) - len(dataset)} 个结构未生成任何边，已从推理数据中跳过")
+
+    return DataLoader(dataset, batch_size=cfg.batch, shuffle=False, num_workers=cfg.workers, pin_memory=True), ids
 
 
 def create_train_val_test(data, val_ratio=0.1, test_ratio=0.1, seed=123):

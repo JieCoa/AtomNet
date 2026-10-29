@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.nn.functional as F
 import logging
@@ -20,43 +21,60 @@ import pandas as pd
 from train.metrics import compute_metrics_and_logging, compute_loss
 
 
-def inference(model, loader, useProcessedData=False):
+def inference(model, loader, ids=None, useProcessedData=False,
+              output_path="dataset/inference/inference_results.json"):
     """
     Run inference using the trained model and save the results.
+
+    ids: 与推理输入一一对应的标识列表（json 中的 id/reference、cif 文件名等）。
+         预测结果通过 dataset 中记录的原始输入下标映射回 ids。
     """
     import numpy as np
     import json
 
     model.eval()
-    inference_list = []
+    results = []
     time_start = time.time()
 
     with torch.no_grad():
         sum_MAE = 0
         size = 0
-        for iter, batch in tqdm(enumerate(loader), total=len(loader), ncols=50):
+        for batch in tqdm(loader, total=len(loader), ncols=50):
             batch.to("cuda:0")
             pred, true = model(batch)
-            inference_list.append(pred.detach().cpu().numpy())
+            predictions = pred.detach().cpu().view(-1).tolist()
+
+            if hasattr(batch, "sid"):
+                sids = batch.sid.view(-1).tolist()
+            else:
+                sids = list(range(size, size + len(predictions)))
+
+            for sid, value in zip(sids, predictions):
+                results.append({
+                    "id": ids[sid] if ids is not None else str(sid),
+                    "prediction": round(float(value), 6),
+                })
 
             if useProcessedData:
                 MAE, _ = compute_loss(pred, true)
                 sum_MAE += MAE.detach().mean().item() * true.detach().to("cpu").shape[0]
                 size += true.detach().to("cpu").shape[0]
 
-        logging.info(f"MAE of Test dataset: {sum_MAE/size:.4f}")
+        if useProcessedData and size > 0:
+            logging.info(f"MAE of Test dataset: {sum_MAE/size:.4f}")
 
     logging.info("Finish inference!")
     logging.info(
         f"Inference time : {np.mean(time.time() - time_start):.1f}s"
     )
 
-    inference_list_json = [pred.tolist() for pred in inference_list]
-    if not useProcessedData:
-        logging.info(f"Inference results : {inference_list_json}\t")
+    output_dir = os.path.dirname(os.path.abspath(output_path))
+    os.makedirs(output_dir, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
 
-    with open("dataset/inference/inference_results.json", "w") as f:
-        json.dump(inference_list_json, f, indent=2)
+    logging.info(f"Saved {len(results)} predictions to {output_path}")
+    return results
 
 
 if __name__ == "__main__":
@@ -66,10 +84,15 @@ if __name__ == "__main__":
     parser.add_argument("--batch", type=int, default=64, help="Batch size")
     parser.add_argument("--batch_accumulation", type=int, default=1, help="Batch Accumulation")  # It is related to the learning rate scheduler
     parser.add_argument("--dataset", type=str, default="megnet", choices=["megnet", "jarvis"], help="Dataset name. Available: jarvis, megnet")
-    parser.add_argument("--dataset_path", type=str, default="./dataset/jarvis/")
+    parser.add_argument("--dataset_path", type=str, default="dataset/jarvis/")
     parser.add_argument("--inference", action="store_true", help="Inference")
-    parser.add_argument("--inference_path", type=str, default="./dataset/inference/")
-    parser.add_argument("--inference_data_path", type=str, default="./dataset/inference/inference_data.json")
+    parser.add_argument("--inference_path", type=str, default="dataset/inference/")
+    parser.add_argument("--inference_data_path", type=str, default="dataset/inference/inference_data.json",
+                        help="推理输入：jarvis 风格 json、单个 cif 文件，或包含多个 cif 的目录")
+    parser.add_argument("--inference_results_path", type=str, default="dataset/inference/inference_results.json",
+                        help="推理结果输出路径，格式为 [{\"id\": ..., \"prediction\": ...}]")
+    parser.add_argument("--cif_primitive", action="store_true",
+                        help="将 cif 压缩为原胞后再推理（与 jarvis 数据集中的原胞表示对齐）")
     # parser.add_argument("--inference_output", type=str, default="./inference.pkl", help="Path to the inference output")
     parser.add_argument("--figshare_target", type=str, default="gap pbe", help="Figshare dataset target")  # mbj_bandgap, optb88vdw_bandgap, ...
     parser.add_argument("--wandb_project", type=str, default="please fill your project name", help="Wandb project name")
@@ -115,6 +138,113 @@ if __name__ == "__main__":
     set_cfg(cfg)
 
     args = parser.parse_args()
+
+    inference_presets = {
+        ("jarvis", "mbj_bandgap"): {
+            "seed": 296,
+            "batch": 64,
+            "envelope_type": "simply",
+            "useElectronegativity": False,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": None,
+            "name": "dft_3D_mbj_bandgap",
+            "run_name": "seed(296)_(64batch_simply_atom_features(116d)_update01)dft_3D_mbj_bandgap",
+        },
+        ("jarvis", "formation_energy_peratom"): {
+            "seed": 206,
+            "batch": 128,
+            "envelope_type": "simply",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": "newRBF",
+            "name": "dft_3D_formation_energy",
+            "run_name": "seed(206)_(128batch_simply_newRBF_eneg_atom_features(116d)_update01)dft_3D_formation_energy",
+        },
+        ("jarvis", "optb88vdw_bandgap"): {
+            "seed": 448,
+            "batch": 128,
+            "envelope_type": "cubic",
+            "useElectronegativity": False,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": None,
+            "name": "dft_3D_opt_bandgap",
+            "run_name": "seed(448)_(128batch_cubic_atom_features(116d)_update01)dft_3D_opt_bandgap",
+        },
+        ("jarvis", "ehull"): {
+            "seed": 510,
+            "batch": 128,
+            "envelope_type": "cubic",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": "newRBF04",
+            "name": "dft_3D_ehull",
+            "run_name": "seed(510)_(128batch_cubic_newRBF04_eneg_atom_features(116d)_update01)dft_3D_ehull",
+        },
+        ("jarvis", "total_energy"): {
+            "seed": 306,
+            "batch": 128,
+            "envelope_type": "cubic",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": "newRBF",
+            "name": "dft_3D_total_energy",
+            "run_name": "seed(306)_(128batch_cubic_newRBF_eneg_atom_features(116d)_update01)dft_3D_total_energy",
+        },
+        ("megnet", "formation energy"): {
+            "seed": 235,
+            "batch": 128,
+            "envelope_type": "simply",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": None,
+            "name": "megnet_formation_energy",
+            "run_name": "seed(235)_(128batch_simply_eneg_atom_features(116d)_update01)megnet_formation_energy",
+        },
+        ("megnet", "gap pbe"): {
+            "seed": 331,
+            "batch": 128,
+            "envelope_type": "cubic",
+            "useElectronegativity": False,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": None,
+            "name": "megnet_bandgap",
+            "run_name": "seed(331)_(128batch_cubic_atom_features(116d)_update01)megnet_bandgap",
+        },
+        ("megnet", "shear modulus"): {
+            "seed": 440,
+            "batch": 64,
+            "envelope_type": "cubic",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": False,
+            "electronegativity_type": "newRBF02",
+            "name": "megnet_shear_modulus",
+            "run_name": "seed(440)_(64batch_cubic_newRBF02_eneg_atom_features(116d)_update01)megnet_shear_modulus",
+        },
+        ("megnet", "bulk modulus"): {
+            "seed": 536,
+            "batch": 64,
+            "envelope_type": "simply",
+            "useElectronegativity": True,
+            "normalizedElectronegativity": True,
+            "electronegativity_type": None,
+            "name": "megnet_bulk_modulus",
+            "run_name": "seed(536)_(64batch_simply_normed_eneg_atom_features(116d)_update01)megnet_bulk_modulus",
+        },
+    }
+    checkpoint_path = None
+    if args.inference:
+        preset = inference_presets.get((args.dataset, args.figshare_target))
+        if preset is not None:
+            args.seed = preset["seed"]
+            args.batch = preset["batch"]
+            args.name = preset["name"]
+            args.envelope_type = preset["envelope_type"]
+            args.useElectronegativity = preset["useElectronegativity"]
+            args.normalizedElectronegativity = preset["normalizedElectronegativity"]
+            args.electronegativity_type = preset["electronegativity_type"]
+            args.atom_init = "atom_features(116d)_update01"
+            checkpoint_path = os.path.join("results", preset["run_name"], "ckpt", "best.ckpt")
+
     cfg.seed = args.seed
     cfg.dataset.task_type = "regression"
     cfg.batch = args.batch
@@ -123,7 +253,9 @@ if __name__ == "__main__":
     cfg.dataset_path = args.dataset_path
     cfg.inference_path = args.inference_path
     cfg.inference_data_path = args.inference_data_path
-    cfg.useProcessedData = True  # inference dataset
+    cfg.inference_results_path = args.inference_results_path
+    cfg.cif_primitive = args.cif_primitive
+    cfg.useProcessedData = False  # inference dataset
     cfg.figshare_target = args.figshare_target
     cfg.wandb_project = args.wandb_project
     cfg.wandb_entity = args.wandb_entity
@@ -185,8 +317,8 @@ if __name__ == "__main__":
     logging.info(f"Target property: {cfg.figshare_target}")
     logging.info(f"Experiment will be saved at: {cfg.run_dir}")
 
-    if args.inference:  # Inference uses an additional incoming dataset (requiring a list of dictionaries containing the specified key)
-        inference_loader = create_inference_loader(use_processed_data=cfg.useProcessedData)
+    if args.inference:  # Inference uses an additional incoming dataset (json / cif file / cif directory)
+        inference_loader, inference_ids = create_inference_loader(use_processed_data=cfg.useProcessedData)
         logging.info(f"Use processed dataset for Inference: {cfg.useProcessedData}.")
     else:
         loaders = create_loader()
@@ -203,14 +335,15 @@ if __name__ == "__main__":
     loggers = create_logger()
 
     if args.inference:
-        ckpt_path = f'{cfg.run_dir}/ckpt/best.ckpt'
-        assert os.path.exists(ckpt_path), "The model parameter file does not exist! ❌"
+        ckpt_path = checkpoint_path or f'{cfg.run_dir}/ckpt/best.ckpt'
+        assert os.path.exists(ckpt_path), f"The model parameter file does not exist: {ckpt_path}"
 
         ckpt = torch.load(ckpt_path)
         model.load_state_dict(ckpt["model_state"])
         # cfg.inference_output = args.inference_output
 
-        inference(model, inference_loader, cfg.useProcessedData)
+        inference(model, inference_loader, ids=inference_ids, useProcessedData=cfg.useProcessedData,
+                  output_path=cfg.inference_results_path)
 
     elif args.ig:  # Feature importance ranking
         logging.info("📊 Start computing feature importance...")

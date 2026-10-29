@@ -65,7 +65,7 @@ class AtomCustomJSONInitializer(AtomInitializer):
 
 class Figshare_Dataset(InMemoryDataset):
     def __init__(self, root, data, targets, transform=None, pre_transform=None, name="jarvis", radius=5.0, max_neigh=-1,
-                 augment=False,  atom_init='atom_number'):
+                 augment=False,  atom_init='atom_number', ids=None):
         """
         root: The root directory tells the storage location of the base class dataset. root = "./dataset/jarvis/"
 
@@ -94,6 +94,8 @@ class Figshare_Dataset(InMemoryDataset):
 
         self.data = data
         self.targets = targets
+        # ids: 与 data 一一对应的标识（推理时用于把预测结果映射回原始输入）
+        self.ids = ids
 
         self.radius = radius
         self.max_neigh = max_neigh if max_neigh > 0 else None
@@ -106,6 +108,12 @@ class Figshare_Dataset(InMemoryDataset):
 
         # If there is data with the same name (self.name) in jarvisprocessed, the following process method will not be executed.
         self.data, self.slices = torch.load(self.processed_paths[0])
+
+        # 只保留成功建图的样本对应的标识，保证与 data 顺序严格对齐
+        self.sid_list = None
+        sid_tensor = getattr(self._data, "sid", None)
+        if ids is not None and sid_tensor is not None:
+            self.sid_list = [ids[int(i)] for i in sid_tensor.view(-1).tolist()]
 
     @property
     def raw_file_names(self):
@@ -146,6 +154,10 @@ class Figshare_Dataset(InMemoryDataset):
 
             data.pbc = torch.tensor([[True, True, True]])
             data.natoms = torch.tensor([data.x.shape[0]])
+
+            if self.ids is not None:
+                # 原始输入下标：建图失败的样本被跳过时仍能追溯回输入
+                data.sid = torch.tensor([i])
 
             data.cell = data.cell.unsqueeze(0)
 
