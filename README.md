@@ -1,10 +1,16 @@
 **[ <u>English</u> ]**  [[ 中文 ]](./README-cn.md)
 
-> News - July 9th!
+> - News - Oct 30th
 >
-> We have added the complete code and usage instructions for the `Atomic Descriptor` module. This module is a data preparation process independent of model training. Researchers can customize the node representations used to initialize GNNs based on the diverse atomic physical properties provided by [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html), similar to the [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json) I provided.
+>   1. We have refactored the [inference interface](#example-script) to support multiple CIF files or a JSON file containing multiple crystal structures.
+>   2. Inference commands have been simplified while retaining support for legacy inference commands.
 >
-> Note: Different physical property data are obtained through different methods. For details, please refer to the [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) documentation. The sample code I provided only involves the retrieval of some properties.
+> - News - July 9th
+>
+>   We have added the complete code and usage instructions for the `Atomic Descriptor` module. This module is a data preparation process independent of model training. Researchers can customize the node representations used to initialize GNNs based on the diverse atomic physical properties provided by [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html), similar to the [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json) I provided.
+>
+>   Note: Different physical property data are obtained through different methods. For details, please refer to the [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) documentation. The sample code I provided only involves the retrieval of some properties.
+>
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
@@ -41,6 +47,9 @@ conda activate 'atomnet'
 conda create -n atomnet python=3.11
 
 conda install pytorch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 pytorch-cuda=12.1 -c nvidia -c pytorch
+# If the CUDA package corruption/metadata error described in the Chinese README occurs,
+# use its alternative command to pin cuda-version to 12.1:
+# conda install pytorch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 pytorch-cuda=12.1 cuda-version=12.1 -c pytorch -c nvidia -c conda-forge
 
 # Install torch_geometric dependencies
 pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-2.1.2+cu121.html
@@ -95,7 +104,7 @@ For the five tasks in the Jarvis dataset, we provide corresponding [pre-trained 
 
 ## Parameter Description 
 
-> We designed a large number of command arguments in `main.py`, and we provide relevant descriptions for each parameter. We explain some important parameters in detail to help users better reproduce our experiments. For parameters not mentioned, we recommend keeping the default values.
+> We designed a large number of command arguments in `main.py`, and we provide relevant descriptions for each parameter. We explain some important parameters in detail to help users better reproduce our experiments. For parameters not mentioned, we recommend keeping the default values. The inference parameters below include the additions from Oct 30th.
 
 - **atom_init**: Filename of the atom descriptors used to initialize node representations (suffix `.json` is auto-completed; all atom descriptor files are stored in 📂`dataset` → 📂`json`).
 
@@ -121,8 +130,13 @@ For the five tasks in the Jarvis dataset, we provide corresponding [pre-trained 
 - **normalizedElectronegativity**: Used with `useElectronegativity` to normalize the electronegativity edge features.
   - When using this parameter, the `electronegativity_type` parameter value is automatically ignored (i.e., no dimension expansion on electronegativity edge features).
 
-- **inference**: Use inference learning based on a pre-trained model.
-  - Since initialization depends on specific architecture details of the pre-trained model, we recommend users use our provided example code and pre-trained models for testing. If you wish to use your own trained model, you need to first generate a pre-trained model using a training script, and then add `--inference` to that training script to perform inference.
+- **inference**: Run predictions with a pre-trained model. For the nine supported dataset/target pairs, `main.py` selects the built-in inference preset and checkpoint path. Legacy full commands are still accepted; see the inference examples below for the configuration behavior.
+
+- **inference_data_path**: Inference input: a JSON file, a single CIF file, or a directory containing CIF files. When a directory contains both CIF and JSON files, the CIF files take precedence. Without CIF files, a directory must contain exactly one JSON file.
+
+- **inference_results_path**: Output JSON file path, defaulting to `dataset/inference/inference_results.json`. This parameter specifies the output file, not the input directory.
+
+- **cif_primitive**: Convert CIF structures to primitive cells before graph construction when using the pymatgen parser. The JARVIS fallback does not apply this conversion.
 
 - **ig**: Conduct interpretability experiments based on a pre-trained model and output visualization results.
   - Similar to the `inference` process, add the `--ig` parameter to the script used to get the pre-trained model, or use our provided example code and pre-trained models to achieve interpretability analysis results for atom descriptor features.
@@ -207,7 +221,7 @@ We provide two methods for executing scripts for model training and inference:
 
 1. Execute the script in the command-line terminal (example script shown below);
 
-2. Execute `/scripts/linux_train_atomnet.py` for **Linux**, and `/scripts/train_atomnet_jarvis.py` for **Windows**.
+2. Execute `/scripts/linux_train_atomnet.py` on **Linux**.
 
 
 
@@ -315,18 +329,17 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 ### Data
 
-> Ideally, the crystal structure used for inference should be distinct from the training dataset, and the data structure of the inference dataset should be consistent with the provided `inference_data.json`.
->
-> - Similar to the model training dataset, we uniformly use the `from jarvis.core.atoms import Atoms` package to process inference data, therefore requiring the JSON data structure shown below.
->
-> - "props" can be empty and will not be used during data processing.
+Ideally, inference structures should be distinct from the training data. Inputs can be JSON structures matching `inference_data.json`, CIF files downloaded from databases such as Materials Project, or a directory of CIF files.
+
+All inputs are normalized to the `jarvis.core.atoms.Atoms` dictionary format before being passed to `Figshare_Dataset`. For JSON, `props` can be empty; it is not used to construct model features.
 
 #### inference_data.json
 
+The recommended top-level format is an **ID-to-structure dictionary**. Its keys become the `id` values in the prediction results. The legacy list format, `[{"atoms": {...}}, ...]`, is also supported.
+
 ```json
-// Jarvis DFT-3d 2021 - "jid": "JVASP-23213"
-[
-    {"atoms": {
+{
+  "mp-19306": {"atoms": {
         "lattice_mat": [
             [
                 1.6374061181864787,
@@ -450,45 +463,115 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
             ""
         ]
     }}
+}
+```
+
+### Inference directly from CIF
+
+`--inference_data_path` accepts the following inputs:
+
+| Input | Description | Result `id` |
+| --- | --- | --- |
+| `*.json` | An ID-to-structure dictionary such as `{"mp-19306": {"atoms": {...}}, ...}`, or a legacy structure list | Dictionary key; for a list, the entry's `id` / `reference` / `jid` / `mp_id`, falling back to `file_stem#index` (zero-based) |
+| `*.cif` | A single CIF file | Filename without the extension |
+| Directory | All CIF files directly inside the directory, sorted by filename; if there are no CIF files, exactly one JSON file is accepted | CIF filename without the extension, or the JSON IDs |
+
+```shell
+# Single CIF; retain the original model configuration when supplying a full command
+python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init "atom_features(116d)_update01" --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference --inference_data_path dataset/inference/cifs/mp-19306_Fe3O4.cif
+
+# Batch inference from a directory using the task preset
+python main.py --dataset jarvis --figshare_target formation_energy_peratom --inference --inference_data_path dataset/inference/cifs
+
+# Convert the CIF to a primitive cell before inference
+python main.py --dataset jarvis --figshare_target formation_energy_peratom --inference --inference_data_path dataset/inference/cifs/mp-19306_Fe3O4.cif --cif_primitive
+```
+
+- CIF parsing first uses pymatgen (`Structure.from_file`, including symmetry expansion). If pymatgen is unavailable or parsing fails, it falls back to `jarvis.core.atoms.Atoms.from_cif`.
+- The pymatgen conversion uses fractional coordinates and a lattice matrix of row vectors (`cartesian: false`), matching the JARVIS coordinate convention. It also supplies `abc`, `angles`, and `props`.
+- For sites with multiple species, the pymatgen conversion selects the species with the highest occupancy and logs a warning. This is a simplified representation of disorder.
+- A conventional Fe3O4 cell can contain 56 atoms. `--cif_primitive` can reduce it to a 14-atom primitive cell, closer to the representation used in JARVIS and with lower graph-construction cost. This option takes effect on the pymatgen path; the JARVIS fallback does not perform primitive-cell conversion.
+- Structures producing no edges are skipped, with the skipped count logged. Their predictions are omitted while IDs remain aligned for the surviving structures.
+
+### Output format
+
+Results default to `dataset/inference/inference_results.json`; use `--inference_results_path` to choose another **output JSON file**. Predictions are a flat list with sample IDs, rather than arrays grouped by batch:
+
+```json
+[
+  {"id": "mp-19306", "prediction": -0.123456},
+  {"id": "mp-19306_frac", "prediction": -0.234567}
 ]
 ```
 
+Predictions are rounded to six decimal places. Each result identifies its input through the JSON dictionary key or CIF filename, so a separate positional mapping is unnecessary. The sample values above illustrate the format.
 
+```shell
+python main.py --dataset jarvis --figshare_target formation_energy_peratom --inference --inference_data_path dataset/inference/cifs --inference_results_path dataset/inference/formation_predictions.json
+```
 
 ### Example script
 
-> Here we uniformly provide the basic script suitable for Linux. If you want to change to Windows, simply remove the `\` in the `--atom_init` part.
+The commands below cover the nine dataset/target pairs supported by the built-in presets. Place the corresponding `best.ckpt` files under `results/` in the code execution directory (`AtomNet/`). A preset selects seed, batch size, experiment name, descriptor, envelope type, and electronegativity settings, and uses its fixed checkpoint path. It overrides those fields even when supplied in a legacy command. Other settings, including edge-update flags, are not restored by the preset; keep them consistent with the checkpoint when reproducing a full training configuration. For a custom checkpoint on one of these tasks, adjust the preset/checkpoint selection in `main.py`.
+
+- Legacy commands remain accepted. Unless `--inference_data_path` is provided, they now read the default JSON input, rather than the test split.
+
 
 #### Jarvis DFT 3D 2021
 
 ##### 1. formation energy
 
 ```shell
-python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference
+# Legacy inference command
+# python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference
+```
+
+```shell
+python main.py --dataset jarvis --figshare_target formation_energy_peratom --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 2. bandgap(OPT)
 
 ```shell
-python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --inference
+# Legacy inference command
+# python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --inference
+```
+
+```shell
+python main.py --dataset jarvis --figshare_target optb88vdw_bandgap --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 3. bandgap(MBJ)
 
 ```shell
-python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply --inference
+# Legacy inference command
+# python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply --inference
+```
+
+```shell
+python main.py --dataset jarvis --figshare_target mbj_bandgap --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 4. ehull
 
 ```shell
-python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04 --inference
+# Legacy inference command
+# python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04 --inference
+```
+
+```shell
+python main.py --dataset jarvis --figshare_target ehull --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 5. total energy
 
 ```shell
-python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
+# Legacy inference command
+# python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
+```
+
+```shell
+python main.py --dataset jarvis --figshare_target optb88vdw_total_energy --inference --inference_data_path dataset/inference/cifs
 ```
 
 
@@ -498,25 +581,45 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 ##### 1. e_form
 
 ```shell
-python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1 --inference
+# Legacy inference command
+# python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1 --inference
+```
+
+```shell
+python main.py --dataset megnet --figshare_target e_form --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1 --inference
+# Legacy inference command
+# python main.py --seed 331 --name megnet_bandgap --dataset megnet --figshare_target 'gap pbe' --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1 --inference
+```
+
+```shell
+python main.py --dataset megnet --figshare_target 'gap pbe' --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 3. bulk modulus
 
 ```shell
-python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --inference
+# Legacy inference command
+# python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --inference
+```
+
+```shell
+python main.py --dataset megnet --figshare_target 'bulk modulus' --inference --inference_data_path dataset/inference/cifs
 ```
 
 ##### 4. shear modulus
 
 ```shell
-python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02 --inference
+# Legacy inference command
+# python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02 --inference
+```
+
+```shell
+python main.py --dataset megnet --figshare_target 'shear modulus' --inference --inference_data_path dataset/inference/cifs
 ```
 
 
@@ -553,14 +656,15 @@ Step 3: Result Visualization
 
 > The table data will be output to the console.
 
-| **n1** | **n2** | **spearman** | **kendall** | **MRC**      |
-| ------ | ------ | ------------ | ----------- | ------------ |
-| 20     | 32     | 1.0          | 1.0         | 7.364111e-05 |
-| 20     | 64     | 1.0          | 1.0         | 6.908334e-05 |
-| 20     | 128    | 1.0          | 1.0         | 6.897337e-05 |
-| 32     | 64     | 1.0          | 1.0         | 6.235194e-06 |
-| 32     | 128    | 1.0          | 1.0         | 6.304672e-06 |
-| 64     | 128    | 1.0          | 1.0         | 3.072127e-07 |
+| n1   | n2   | spearman | kendall | MRC      |
+| ---- | ---- | -------- | ------- | -------- |
+| 20   | 32   | 1.0      | 1.0     | 0.000186 |
+| 20   | 64   | 1.0      | 1.0     | 0.000196 |
+| 20   | 128  | 1.0      | 1.0     | 0.000196 |
+| 32   | 64   | 1.0      | 1.0     | 0.000026 |
+| 32   | 128  | 1.0      | 1.0     | 0.000026 |
+| 64   | 128  | 1.0      | 1.0     | 0.000002 |
+
 
 ## Model Efficiency
 

@@ -1,8 +1,13 @@
-> News - July 9th!
+> - News - Oct 30th
 >
-> 我们新增了关于 `Atomic Descriptor` 模块的完整代码和使用说明，该模块是一个独立于模型训练的数据准备过程，研究者可以根据 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 提供的多样化的原子物理属性来自定义用于初始化 GNN 中的节点表示，类似于我提供的 [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json)。
+>   1. 我们重构了模型的 [inference 接口](#示例脚本)，并支持输入多个 cif 文件或包含多个结构数据的 json 文件；
+>   2. inference 脚本优化，兼容旧推理脚本。
 >
-> Note: 不同的物理属性数据的获取方式不同，具体见 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 文档，我提供的示例代码仅涉及部分属性的获取。
+> - News - July 9th
+>
+>   我们新增了关于 `Atomic Descriptor` 模块的完整代码和使用说明，该模块是一个独立于模型训练的数据准备过程，研究者可以根据 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 提供的多样化的原子物理属性来自定义用于初始化 GNN 中的节点表示，类似于我提供的 [*atom_features(116d)_update01.json*](https://github.com/JieCoa/AtomNet/blob/main/AtomNet/dataset/json/atom_features(116d)_update01.json)。
+>
+>   **Note**: 不同的物理属性数据的获取方式不同，具体见 [*mendeleev*](https://mendeleev.readthedocs.io/en/stable/data.html) 文档，我提供的示例代码仅涉及部分属性的获取。
 
 # Physics-informed graph neural network representation learning for crystal property prediction
 
@@ -103,7 +108,7 @@ pip install numpy==1.26.0
 
 ## 参数说明
 
-> 我们在 main.py 设计了大量的指令参数，每个参数我们都提供了相关的描述。对于部分重要参数，我们进行详细说明，帮助 user 更好的复现我们的实验。对于未提及的参数，我们建议保留使用默认值。
+> 我们在 main.py 设计了大量的指令参数，每个参数我们都提供了相关的描述。对于部分重要参数，我们进行详细说明，帮助 user 更好的复现我们的实验。对于未提及的参数，我们建议保留使用默认值。--- 新增参数 (Oct 30th) ---
 
 - **atom_init**：用于初始化节点表示的原子描述符文件名（后缀 `.json` 会自动补全，所有原子描述符文件存放在 📂`dataset` → 📂`json`）
 - **name**：当前 wandb 实验的名称，会同步到 wandb 对应 `wandb_project` 项目下生成训练记录。
@@ -118,6 +123,9 @@ pip install numpy==1.26.0
   - 当使用该参数时，会自动忽视 `electronegativity_type` 的参数值，即不对电负性边特征进行维度扩展。
 - **inference**：基于预训练模型使用推理学习。
   - 由于模型的初始化依赖于预训练模型的具体架构细节。所以，我们建议 user 使用我们提供的示例代码和预训练模型进行尝试。如果希望用自己的训练模型，需要先用一套模型训练脚本生成预训练模型，再在这套训练脚本中加上 `--inference` 即可实现推理学习。
+- **inference_results_path**：推理输入数据路径
+  - 如果是多个 cif 文件，路径为父目录；
+  - 如果父目录下同时存在 json 和 cif，json 文件会被忽略。
 - **ig**：基于预训练模型进行解释性实验，并输出可视化结果。
   - 与 `inference` 流程一样，在得到预训练模型的那套脚本中加上 `--ig` 参数，或使用我们提供的示例代码和预训练模型，即可实现针对原子描述符特征的可解释性分析结果。
 - **max_neighbours**：经过实验验证，虽然限制中心原子的邻居数量能够一定程度上减少模型的参数量和训练时间，但在最终的 MAE 指标上，仅依赖截止半径的预测结果优于使用截断半径与最大邻居数双重限制的模型性能。
@@ -309,17 +317,18 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
 
 ### 数据
 
-> 理想情况下，用于推理的晶体结构应区别于训练数据集，且推理数据集的数据结构应与我们提供的 `inference_data.json` 保持一致。
+> 理想情况下，用于推理的晶体结构应区别于训练数据集。推理输入既可以是下面这种与 `inference_data.json` 一致的 json，也可以直接使用从 Materials Project 等数据库下载的 cif 文件（或 cif 目录）。
 >
-> - 与模型训练数据集一样，我们统一使用 `from jarvis.core.atoms import Atoms` 包处理推理数据，因此要求满足下面展示的 json 数据结构。
+> - 与模型训练数据集一样，我们统一使用 `from jarvis.core.atoms import Atoms` 包处理推理数据，因此 json 需要满足下面展示的数据结构；cif 会在读入时自动转换成同样的结构。
 > - "props" 可以为空，不会在数据处理过程中使用。
 
 #### inference_data.json
 
+> 顶层是「id → 结构」的字典，键会直接作为预测结果里的 `id`，因此输入与输出天然一一对应。旧的列表形式 `[{"atoms": {...}}, ...]` 仍然兼容。
+
 ```json
-// "jid": "JVASP-23213"
-[
-    {"atoms": {
+{
+  "mp-19306": {"atoms": {
         "lattice_mat": [
             [
                 1.6374061181864787,
@@ -443,45 +452,102 @@ python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshar
             ""
         ]
     }}
-]
+}
 ```
 
 
 
+### 直接用 cif 推理
+
+`--inference_data_path` 支持三种输入，内部都会归一化成上面的 `atoms` 结构再送入 `Figshare_Dataset`：
+
+| 输入 | 说明 | 结果中的 `id` |
+| --- | --- | --- |
+| `*.json` | `{"mp-19306": {"atoms": {...}}, ...}` 的 id→结构字典；也兼容旧的 `[{"atoms": {...}}, ...]` 列表 | 字典键；列表形式取条目里的 `id` / `reference` / `jid`，缺省为 `文件名#序号` |
+| `*.cif` | 单个 cif 文件 | 文件名（不含后缀） |
+| 目录 | 目录下全部 `*.cif`，按文件名排序；目录内没有 cif 且只有一个 json 时按 json 处理 | 文件名（不含后缀） |
+
+```shell
+# 单个 cif（其它参数沿用训练时的配置）
+python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference --inference_data_path dataset/inference/mp-19306_Fe3O4.cif
+
+# 目录批量
+python main.py ... --inference --inference_data_path dataset/inference/
+
+# 压成原胞后再推理
+python main.py ... --inference --inference_data_path dataset/inference/mp-19306_Fe3O4.cif --cif_primitive
+```
+
+- cif 解析优先使用 pymatgen（`Structure.from_file`，会按对称操作展开），未安装或解析失败时回退到 `jarvis.core.atoms.Atoms.from_cif`。
+- 转换结果是分数坐标 + 行向量晶格矩阵（`cartesian: false`），与 jarvis `Atoms` 的坐标约定一致；`abc` / `angles` / `props` 会自动补全，无需手工填写。
+- 无序/部分占位位点按占有率最高的元素取一种，并在日志中给出 warning。
+- MP 下载的 cif 通常是常规胞（如 Fe3O4 为 56 原子），加 `--cif_primitive` 会先压成原胞（14 原子）再建图，与 jarvis 数据集中的原胞表示更接近，计算量也更小。
+- 建图后没有任何边的结构会被跳过，日志会打印跳过数量，因此结果条目数可能少于输入结构数。
+
+### 输出格式
+
+结果默认写入 `dataset/inference/inference_results.json`，可用 `--inference_results_path` 指定。输出是带样本标识的列表（不再按 batch 分组）：
+
+```json
+[
+  {"id": "mp-19306", "prediction": -0.123456},
+  {"id": "mp-19306_frac", "prediction": -0.234567}
+]
+```
+
+`id` 与输入一一对应（json 的字典键 / cif 文件名），因此无需再自行维护输入顺序映射。
+
 ### 示例脚本
 
-> 这里我们统一提供适用于 linux 的运行脚本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+这里我们统一提供适用于 linux 的运行脚本。如果想改成 windows，直接删除 `--atom_init` 部分的 `\`。
+
+- 旧推理脚本仍然兼容。
 
 #### Jarvis DFT 3D 2021
 
 ##### 1. formation energy
 
 ```shell
-python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference
+# 旧推理脚本
+# python main.py --seed 206 --name dft_3D_formation_energy --dataset jarvis --figshare_target formation_energy_peratom --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --electronegativity_type newRBF --inference
+
+python main.py --dataset jarvis --figshare_target formation_energy_peratom --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 2. bandgap(OPT)
 
 ```shell
-python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --inference
+# 旧推理脚本
+# python main.py --seed 448 --name dft_3D_opt_bandgap --dataset jarvis --figshare_target optb88vdw_bandgap --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --inference
+
+python main.py --dataset jarvis --figshare_target optb88vdw_bandgap --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 3. bandgap(MBJ)
 
 ```shell
-python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply --inference
+# 旧推理脚本
+# python main.py --seed 296 --name dft_3D_mbj_bandgap --dataset jarvis --figshare_target mbj_bandgap --epochs 300 --atom_init atom_features\(116d\)_update01 --envelope_type simply --inference
+
+python main.py --dataset jarvis --figshare_target mbj_bandgap --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 4. ehull
 
 ```shell
-python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04 --inference
+# 旧推理脚本
+# python main.py --seed 510 --name dft_3D_ehull --dataset jarvis --figshare_target ehull --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF04 --inference
+
+python main.py --dataset jarvis --figshare_target ehull --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 5. total energy
 
 ```shell
-python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
+# 旧推理脚本
+# python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare_target optb88vdw_total_energy --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF --inference
+
+python main.py --dataset jarvis --figshare_target optb88vdw_total_energy --inference --inference_results_path dataset\inference\cifs
 ```
 
 
@@ -491,25 +557,37 @@ python main.py --seed 306 --name dft_3D_total_energy --dataset jarvis --figshare
 ##### 1. e_form
 
 ```shell
-python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1 --inference
+# 旧推理脚本
+# python main.py --seed 235 --name megnet_formation_energy --dataset megnet --figshare_target e_form --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --max_neighbours -1 --inference
+
+python main.py --dataset megnet --figshare_target e_form --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 2. bandgap
 
 ```shell
-python main.py --seed 331 --name megnet_bandgap --dataset megnet --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1 --inference
+# 旧推理脚本
+# python main.py --seed 331 --name megnet_bandgap --dataset megnet --figshare_target 'gap pbe' --threads 10 --workers 5 --epochs 300 --atom_init atom_features\(116d\)_update01 --batch 128 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --max_neighbours -1 --inference
+
+python main.py --dataset megnet --figshare_target 'gap pbe' --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 3. bulk  modulus
 
 ```shell
-python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --inference
+# 旧推理脚本
+# python main.py --seed 536 --name megnet_bulk_modulus --dataset megnet --figshare_target 'bulk modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --normalizedElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type simply --inference
+
+python main.py --dataset megnet --figshare_target 'bulk modulus' --inference --inference_results_path dataset\inference\cifs
 ```
 
 ##### 4. shear modulus
 
 ```shell
-python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02 --inference
+# 旧推理脚本
+# python main.py --seed 440 --name megnet_shear_modulus --dataset megnet --figshare_target 'shear modulus' --epochs 300 --atom_init atom_features\(116d\)_update01 --useElectronegativity --batch 64 --disableUpdateEdge --limitedUpdateEdge 2 --envelope_type cubic --electronegativity_type newRBF02 --inference
+
+python main.py --dataset megnet --figshare_target 'shear modulus' --inference --inference_results_path dataset\inference\cifs
 ```
 
 
