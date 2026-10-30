@@ -180,7 +180,7 @@ if __name__ == "__main__":
             "name": "dft_3D_ehull",
             "run_name": "seed(510)_(128batch_cubic_newRBF04_eneg_atom_features(116d)_update01)dft_3D_ehull",
         },
-        ("jarvis", "total_energy"): {
+        ("jarvis", "optb88vdw_total_energy"): {
             "seed": 306,
             "batch": 128,
             "envelope_type": "cubic",
@@ -190,7 +190,7 @@ if __name__ == "__main__":
             "name": "dft_3D_total_energy",
             "run_name": "seed(306)_(128batch_cubic_newRBF_eneg_atom_features(116d)_update01)dft_3D_total_energy",
         },
-        ("megnet", "formation energy"): {
+        ("megnet", "e_form"): {
             "seed": 235,
             "batch": 128,
             "envelope_type": "simply",
